@@ -1,8 +1,13 @@
 #!/bin/bash
+BUILD="$1"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $SCRIPT_DIR
 source common.sh
 set -e
+
+if [ -z $BUILD ]; then
+    BUILD="1"
+fi
 
 PACKAGE_NAME="nagios-nrpe"
 
