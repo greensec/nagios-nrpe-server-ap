@@ -1,12 +1,6 @@
 name: build full release
 on:
   workflow_dispatch:
-    # Inputs the workflow accepts.
-    inputs:
-      hb_tag:
-        description: 'Version Tag'
-        default: '1.7.2'
-        required: true
   create:
     tags:
       - '*'
@@ -21,9 +15,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os-version: ["bookworm", "bullseye", "mantic", "jammy", "focal"]
+        os-version: ["bookworm", "bullseye"]
     container:
-      image: "ghcr.io/${{ github.repository_owner }}/handbrake-custom-build:${{ matrix.os-version }}"
+      image: "ghcr.io/${{ github.repository_owner }}/nagios-nrpe-custom-build:${{ matrix.os-version }}"
       options: --privileged --device /dev/fuse
       credentials:
         username: ${{ github.actor }}

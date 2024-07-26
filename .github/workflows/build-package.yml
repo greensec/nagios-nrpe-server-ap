@@ -9,13 +9,10 @@ on:
         type: choice
         description: 'Debian/Ubuntu Version'
         options:
-          - 'mantic'
-          - 'jammy'
-          - 'focal'
           - 'bullseye'
           - 'bookworm'
         required: true
-     release:
+      release:
         type: boolean
         description: "publish to repository"
 
@@ -24,7 +21,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     container:
-      image: "ghcr.io/${{ github.repository_owner }}/handbrake-custom-build:${{ github.event.inputs.flavor }}"
+      image: "ghcr.io/${{ github.repository_owner }}/nagios-nrpe-custom-build:${{ github.event.inputs.flavor }}"
       options: --privileged --device /dev/fuse
       credentials:
         username: ${{ github.actor }}
@@ -44,7 +41,6 @@ jobs:
         run: ./scripts/build.sh
         env:
           DEB_FLAVOR: "${{ github.event.inputs.flavor }}"
-          HB_TAG: "${{ github.event.inputs.hb_tag }}"
       - name: Upload deb files
         uses: actions/upload-artifact@v4
         with:
@@ -64,12 +60,8 @@ jobs:
           repo_supported_version: |
             bookworm
             bullseye
-            focal
-            jammy
-            mantic
           file: |
-            handbrake_${{ github.event.inputs.hb_tag }}~${{ github.event.inputs.flavor }}_amd64.deb
-            handbrake-cli_${{ github.event.inputs.hb_tag }}~${{ github.event.inputs.flavor }}_amd64.deb
+            nagios-nrpe-server~${{ github.event.inputs.flavor }}_amd64.deb
           file_target_version: ${{ github.event.inputs.flavor }}
           private_key: ${{ secrets.APT_SIGNING_KEY }}
           key_passphrase: ""
