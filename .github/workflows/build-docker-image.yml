@@ -8,9 +8,6 @@ on:
         type: choice
         description: 'Debian/Ubuntu Version'
         options:
-          - 'focal'
-          - 'jammy'
-          - 'mantic'
           - 'bullseye'
           - 'bookworm'
         required: true
