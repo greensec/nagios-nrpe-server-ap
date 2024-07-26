@@ -9,7 +9,7 @@ PACKAGE_NAME="nagios-nrpe"
 statusline "Run apt-get update to download source updates"
 apt-get update
 
-apt-get build-dep nagios-nrpe
+apt-get -y build-dep nagios-nrpe
 apt-get -y install nagios-nrpe-server
 
 BASE_VERSION=$(dpkg-query -f '${Version}' -W "nagios-nrpe-server")
