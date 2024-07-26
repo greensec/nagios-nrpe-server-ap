@@ -1,12 +1,15 @@
 #!/bin/bash
 source common.sh
 set -e
-BUILD=$1
 
 PACKAGE_NAME="nagios-nrpe-server"
 
 statusline "Run apt-get update to download source updates"
 apt-get update
+
+apt-get build-dep nagios-nrpe-server \
+apt-get -y install nagios-nrpe-server
+
 
 BASE_VERSION=$(dpkg-query -f '${Version}' -W "${PACKAGE_NAME}")
 if [ -z $BASE_VERSION ]; then

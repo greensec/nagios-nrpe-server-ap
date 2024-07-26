@@ -11,11 +11,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN set -e \
     && apt-get update \
     && apt-get -y install wget ca-certificates gnupg quilt vim debhelper build-essential lsb-release dh-python \
-    && apt-get build-dep nagios-nrpe-server \
-    && apt-get -y install nagios-nrpe-server \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* /var/tmp/* /var/log/*
 
-
 ADD	scripts/ /root/.
-ADD run.sh /root/.
