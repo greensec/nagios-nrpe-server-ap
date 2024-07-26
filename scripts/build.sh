@@ -124,6 +124,7 @@ EOF
     statusline "Start build process"
     DEB_BUILD_OPTIONS="noautodbgsym nocheck nodocs" dpkg-buildpackage -j$(nproc) -d -us -b
     cd ..
+    cp *.deb /root/
 done
 
 statusline "FINISHED SUCCESSFULLY!"
