@@ -1,0 +1,75 @@
+# This is a basic workflow that is manually triggered
+
+name: build package
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      flavor:
+        type: choice
+        description: 'Debian/Ubuntu Version'
+        options:
+          - 'mantic'
+          - 'jammy'
+          - 'focal'
+          - 'bullseye'
+          - 'bookworm'
+        required: true
+     release:
+        type: boolean
+        description: "publish to repository"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/${{ github.repository_owner }}/handbrake-custom-build:${{ github.event.inputs.flavor }}"
+      options: --privileged --device /dev/fuse
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Cache build
+        uses: actions/cache@v3
+        with:
+          path: |
+            cache
+          key: "${{ github.event.inputs.flavor }}-build-cache-${{ github.event.inputs.hb_tag }}"
+          restore-keys: |
+            "${{ github.event.inputs.flavor }}-build-cache-"
+      - name: Run build script
+        run: ./scripts/build.sh
+        env:
+          DEB_FLAVOR: "${{ github.event.inputs.flavor }}"
+          HB_TAG: "${{ github.event.inputs.hb_tag }}"
+      - name: Upload deb files
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: ./*.deb
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ./*.deb
+      - name: Github pages APT repo
+        uses: smeinecke/apt-repo-action@master
+        if: github.event.inputs.release == true
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          repo_supported_arch: amd64
+          repo_supported_version: |
+            bookworm
+            bullseye
+            focal
+            jammy
+            mantic
+          file: |
+            handbrake_${{ github.event.inputs.hb_tag }}~${{ github.event.inputs.flavor }}_amd64.deb
+            handbrake-cli_${{ github.event.inputs.hb_tag }}~${{ github.event.inputs.flavor }}_amd64.deb
+          file_target_version: ${{ github.event.inputs.flavor }}
+          private_key: ${{ secrets.APT_SIGNING_KEY }}
+          key_passphrase: ""
