@@ -1,8 +1,10 @@
 #!/bin/bash
 BUILD="$1"
-BHOME=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-cd $BHOME
-source common.sh
+WORKDIR="${PWD}"
+SCRIPT=$(readlink -f "$0")
+SCRIPTDIR=$(dirname "${SCRIPT}")
+
+source $SCRIPTDIR/common.sh
 set -e
 
 if [ -z $BUILD ]; then
@@ -12,6 +14,7 @@ fi
 PACKAGE_NAME="nagios-nrpe"
 
 statusline "Run apt-get update to download source updates"
+cd "${WORKDIR}"
 apt-get update
 
 apt-get -y build-dep nagios-nrpe
@@ -27,37 +30,35 @@ BASE_MAJOR=$(echo "${BASE_VERSION}" | cut -d'-' -f1)
 BASE_MINOR=$(echo "${BASE_VERSION}" | cut -d'-' -f2)
 statusline "Found ${PACKAGE_NAME} ${BASE_VERSION}"
 
-mkdir -p $BHOME/build
 PACKAGES=("${PACKAGE_NAME}")
 
-cd $BHOME/build
 for PACKAGE in ${PACKAGES[@]}; do
     CHECK_VERSION=1
-    if [ -d $BHOME/download/${PACKAGE}-${BASE_MAJOR} ]; then
+    if [ -d $SCRIPTDIR/download/${PACKAGE}-${BASE_MAJOR} ]; then
         statusline "Copy local package ${PACKAGE}"
-        cp -a $BHOME/download/${PACKAGE}-${BASE_MAJOR} .
-    elif [ -d $BHOME/download/${PACKAGE} ]; then
+        cp -a $SCRIPTDIR/download/${PACKAGE}-${BASE_MAJOR} .
+    elif [ -d $SCRIPTDIR/download/${PACKAGE} ]; then
         statusline "Copy local package ${PACKAGE}"
-        cp -a $BHOME/download/${PACKAGE} .
+        cp -a $SCRIPTDIR/download/${PACKAGE} .
         CHECK_VERSION=0
-    elif compgen -G "$BHOME/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.*" >/dev/null; then
-        if compgen -G "$BHOME/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2" >/dev/null; then
+    elif compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.*" >/dev/null; then
+        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2" >/dev/null; then
             statusline "Extracting ${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2"
-            tar xjf $BHOME/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2
+            tar xjf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2
         fi
-        if compgen -G "$BHOME/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.xz" >/dev/null; then
+        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.xz" >/dev/null; then
             statusline "Extracting ${PACKAGE}_${BASE_MAJOR}.orig.tar.xz"
-            tar xJf $BHOME/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.xz
+            tar xJf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.xz
         fi
 
-        if compgen -G "$BHOME/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2" >/dev/null; then
+        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2" >/dev/null; then
             statusline "Extracting ${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2"
-            tar xjf $BHOME/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2
+            tar xjf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2
         fi
 
-        if compgen -G "$BHOME/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz" >/dev/null; then
+        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz" >/dev/null; then
             statusline "Extracting ${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz"
-            tar xJf $BHOME/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz
+            tar xJf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz
         fi
     else
         statusline "Fetching ${PACKAGE}"
@@ -71,10 +72,10 @@ for PACKAGE in ${PACKAGES[@]}; do
         cd ${PACKAGE}
     fi
 
-    if [ -e $BHOME/prepare/${PACKAGE}.sh ]; then
-        statusline "Running $BHOME/prepare/${PACKAGE}.sh"
+    if [ -e $SCRIPTDIR/prepare/${PACKAGE}.sh ]; then
         mkdir -p debian
-        cp $BHOME/prepare/${PACKAGE}.sh debian/prepare.sh
+        cp $SCRIPTDIR/prepare/${PACKAGE}.sh debian/prepare.sh
+        statusline "Running prepare/${PACKAGE}.sh"
         . ./debian/prepare.sh
     fi
 
@@ -102,8 +103,8 @@ for PACKAGE in ${PACKAGES[@]}; do
 
     CUSTOM_MINOR=$((${MINOR}*1000+${BUILD}))
     tar -cjf ../${PACKAGE}_${MAJOR}-${CUSTOM_MINOR}.orig.tar.bz2 --exclude=debian .
-    if [ -d $BHOME/patches/${PACKAGE} ]; then
-        for x in $BHOME/patches/${PACKAGE}/*; do
+    if [ -d $SCRIPTDIR/patches/${PACKAGE} ]; then
+        for x in $SCRIPTDIR/patches/${PACKAGE}/*; do
             statusline "Add patch $(basename ${x}) to ${PACKAGE}"
             mkdir -p debian/patches/
             cp -v $x debian/patches/
@@ -124,7 +125,6 @@ EOF
     statusline "Start build process"
     DEB_BUILD_OPTIONS="noautodbgsym nocheck nodocs" dpkg-buildpackage -j$(nproc) -d -us -b
     cd ..
-    cp *.deb /root/
 done
 
 statusline "FINISHED SUCCESSFULLY!"
