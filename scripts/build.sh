@@ -1,7 +1,7 @@
 #!/bin/bash
 BUILD="$1"
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-cd $SCRIPT_DIR
+BHOME=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd $BHOME
 source common.sh
 set -e
 
@@ -72,6 +72,7 @@ for PACKAGE in ${PACKAGES[@]}; do
     fi
 
     if [ -e $BHOME/prepare/${PACKAGE}.sh ]; then
+        statusline "Running $BHOME/prepare/${PACKAGE}.sh"
         mkdir -p debian
         cp $BHOME/prepare/${PACKAGE}.sh debian/prepare.sh
         . ./debian/prepare.sh
