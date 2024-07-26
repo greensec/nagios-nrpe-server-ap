@@ -18,7 +18,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     container:
-      image: "ghcr.io/${{ github.repository_owner }}/nagios-nrpe-custom-build:${{ github.event.inputs.flavor }}"
+      image: "ghcr.io/${{ github.repository_owner }}/custom-deb-build:${{ github.event.inputs.flavor }}"
       options: --privileged --device /dev/fuse
       credentials:
         username: ${{ github.actor }}

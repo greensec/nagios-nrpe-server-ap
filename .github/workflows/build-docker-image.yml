@@ -36,4 +36,4 @@ jobs:
           context: "{{defaultContext}}:docker"
           file: "build-${{ github.event.inputs.flavor }}"
           push: true
-          tags: "${{ env.REGISTRY }}/${{ github.repository_owner }}/nagios-nrpe-custom-build:${{ github.event.inputs.flavor }}"
+          tags: "${{ env.REGISTRY }}/${{ github.repository_owner }}/custom-deb-build:${{ github.event.inputs.flavor }}"
