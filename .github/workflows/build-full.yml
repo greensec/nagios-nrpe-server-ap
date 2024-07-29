@@ -32,7 +32,7 @@ jobs:
         if: github.event.inputs.hb_tag != ''
         run: echo "HB_TAG=${{ github.event.inputs.hb_tag }}" >> $GITHUB_ENV
       - name: Cache build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             cache
