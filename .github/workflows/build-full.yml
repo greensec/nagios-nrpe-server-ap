@@ -6,45 +6,71 @@ on:
       - '*'
 
 jobs:
-  build:
-    name: Build packages
+  prepare:
+    name: Prepare release matrix
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - flavor: bullseye
-            image: debian:bullseye
-          - flavor: bookworm
-            image: debian:bookworm
-          - flavor: trixie
-            image: debian:trixie
-          - flavor: noble
-            image: ubuntu:noble
-    container:
-      image: "${{ matrix.image }}"
+    outputs:
+      os_matrix: ${{ steps.releases.outputs.os_matrix }}
+      repo_versions: ${{ steps.releases.outputs.repo_versions }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Load Supported Releases
+        id: releases
+        run: |
+          set -eu
+          mapfile -t releases < <(grep -E '^[a-z]+:[a-z0-9]+$' .github/supported-releases.txt)
+          if [ "${#releases[@]}" -eq 0 ]; then
+            echo "No supported releases found in .github/supported-releases.txt"
+            exit 1
+          fi
+
+          os_matrix="$(printf '%s\n' "${releases[@]}" | jq -R . | jq -s -c .)"
+          repo_versions="$(printf '%s\n' "${releases[@]}" | cut -d: -f2)"
+
+          echo "os_matrix=${os_matrix}" >> "$GITHUB_OUTPUT"
+          {
+            echo "repo_versions<<EOF"
+            printf '%s\n' "${repo_versions}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build packages
+    runs-on: ubuntu-latest
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version: ${{ fromJson(needs.prepare.outputs.os_matrix) }}
+    container:
+      image: "${{ matrix.os-version }}"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Extract release codename
+        run: |
+          os_version="${{ matrix.os-version }}"
+          echo "debian_release=${os_version##*:}" >> "$GITHUB_ENV"
       - name: Prepare build environment
         run: ./scripts/ci/setup-build-env.sh
       - name: Run build script
         run: ./scripts/build.sh
       - name: Add flavor suffix to package filename
         run: |
-          shopt -s nullglob
           for x in ./*.deb; do
+            [ -e "$x" ] || continue
             base="$(basename "$x")"
             pkg="${base%%_*}"
             tail="${base#${pkg}_}"
             version="${tail%_*}"
             arch="${tail##*_}"
-            mv "$x" "./${pkg}_${version}~${{ matrix.flavor }}_${arch}"
+            mv "$x" "./${pkg}_${version}~${{ env.debian_release }}_${arch}"
           done
       - name: Upload deb files
         uses: actions/upload-artifact@v4
         with:
-          name: packages-${{ matrix.flavor }}
+          name: packages-${{ env.debian_release }}
           path: ./*.deb
 
   merge-artefacts:
@@ -79,22 +105,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: merge-artefacts
+    needs:
+      - merge-artefacts
+      - prepare
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: "merged-artifacts"
       - name: Add releases to repo
-        uses: smeinecke/apt-repo-action@master
+        uses: smeinecke/apt-repo-action@v2.1.8
         with:
           github_token: ${{ github.token }}
           repo_supported_arch: |
             amd64
-          repo_supported_version: |
-            trixie
-            bookworm
-            bullseye
-            noble
+          repo_supported_version: ${{ needs.prepare.outputs.repo_versions }}
           file: |
             *.deb
           version_by_filename: true

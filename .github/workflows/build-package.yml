@@ -6,13 +6,8 @@ on:
     # Inputs the workflow accepts.
     inputs:
       flavor:
-        type: choice
-        description: 'Debian/Ubuntu Version'
-        options:
-          - 'bullseye'
-          - 'bookworm'
-          - 'trixie'
-          - 'noble'
+        description: "Debian/Ubuntu flavor (e.g. debian:trixie, ubuntu:noble)"
+        default: "debian:trixie"
         required: true
 
 jobs:
@@ -20,10 +15,20 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     container:
-      image: "${{ github.event.inputs.flavor == 'noble' && 'ubuntu:noble' || format('debian:{0}', github.event.inputs.flavor) }}"
+      image: "${{ inputs.flavor }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Validate flavor
+        run: |
+          set -eu
+          flavor="${{ inputs.flavor }}"
+          if ! grep -qx "${flavor}" .github/supported-releases.txt; then
+            echo "Unsupported flavor: ${flavor}"
+            echo "Supported flavors:"
+            cat .github/supported-releases.txt
+            exit 1
+          fi
       - name: Prepare build environment
         run: ./scripts/ci/setup-build-env.sh
       - name: Run build script
