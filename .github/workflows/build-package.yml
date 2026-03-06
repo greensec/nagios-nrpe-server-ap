@@ -11,6 +11,8 @@ on:
         options:
           - 'bullseye'
           - 'bookworm'
+          - 'trixie'
+          - 'noble'
         required: true
 
 jobs:
@@ -18,26 +20,14 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     container:
-      image: "ghcr.io/${{ github.repository_owner }}/custom-deb-build:${{ github.event.inputs.flavor }}"
-      options: --privileged --device /dev/fuse
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: "${{ github.event.inputs.flavor == 'noble' && 'ubuntu:noble' || format('debian:{0}', github.event.inputs.flavor) }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Cache build
-        uses: actions/cache@v4
-        with:
-          path: |
-            cache
-          key: "${{ github.event.inputs.flavor }}-build-cache-${{ github.event.inputs.hb_tag }}"
-          restore-keys: |
-            "${{ github.event.inputs.flavor }}-build-cache-"
+      - name: Prepare build environment
+        run: ./scripts/ci/setup-build-env.sh
       - name: Run build script
         run: ./scripts/build.sh
-        env:
-          DEB_FLAVOR: "${{ github.event.inputs.flavor }}"
       - name: Upload deb files
         uses: actions/upload-artifact@v4
         with:

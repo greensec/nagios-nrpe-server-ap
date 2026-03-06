@@ -11,6 +11,8 @@ on:
         options:
           - 'bullseye'
           - 'bookworm'
+          - 'trixie'
+          - 'noble'
         required: true
       release:
         type: boolean
@@ -20,27 +22,17 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     container:
-      image: "ghcr.io/${{ github.repository_owner }}/custom-deb-build:${{ github.event.inputs.flavor }}"
-      options: --privileged --device /dev/fuse
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: "${{ github.event.inputs.flavor == 'noble' && 'ubuntu:noble' || format('debian:{0}', github.event.inputs.flavor) }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Cache build
-        uses: actions/cache@v4
-        with:
-          path: |
-            cache
-          key: "${{ github.event.inputs.flavor }}-build-cache-${{ github.event.inputs.hb_tag }}"
-          restore-keys: |
-            "${{ github.event.inputs.flavor }}-build-cache-"
+      - name: Prepare build environment
+        run: ./scripts/ci/setup-build-env.sh
       - name: Run build script
         run: ./scripts/build.sh
-        env:
-          DEB_FLAVOR: "${{ github.event.inputs.flavor }}"
       - name: Upload deb files
         uses: actions/upload-artifact@v4
         with:
@@ -48,20 +40,22 @@ jobs:
           path: ./*.deb
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: (startsWith(github.ref, 'refs/tags/') && github.event.inputs.release == 'true')
         with:
           files: ./*.deb
       - name: Github pages APT repo
         uses: smeinecke/apt-repo-action@master
-        if: github.event.inputs.release == true
+        if: github.event.inputs.release == 'true'
         with:
           github_token: ${{ secrets.GH_PAT }}
           repo_supported_arch: amd64
           repo_supported_version: |
+            noble
+            trixie
             bookworm
             bullseye
           file: |
-            nagios-nrpe-server~${{ github.event.inputs.flavor }}_amd64.deb
+            *.deb
           file_target_version: ${{ github.event.inputs.flavor }}
           private_key: ${{ secrets.APT_SIGNING_KEY }}
           key_passphrase: ""

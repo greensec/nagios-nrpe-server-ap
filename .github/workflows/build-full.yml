@@ -5,9 +5,6 @@ on:
     tags:
       - '*'
 
-env:
-  HB_TAG: ${{ github.event.inputs.hb_tag }}
-
 jobs:
   build:
     name: Build packages
@@ -15,142 +12,91 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os-version: ["bookworm", "bullseye"]
+        include:
+          - flavor: bullseye
+            image: debian:bullseye
+          - flavor: bookworm
+            image: debian:bookworm
+          - flavor: trixie
+            image: debian:trixie
+          - flavor: noble
+            image: ubuntu:noble
     container:
-      image: "ghcr.io/${{ github.repository_owner }}/nagios-nrpe-custom-build:${{ matrix.os-version }}"
-      options: --privileged --device /dev/fuse
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: "${{ matrix.image }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set env
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "HB_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Set env
-        if: github.event.inputs.hb_tag != ''
-        run: echo "HB_TAG=${{ github.event.inputs.hb_tag }}" >> $GITHUB_ENV
-      - name: Cache build
-        uses: actions/cache@v4
-        with:
-          path: |
-            cache
-          key: "${{ matrix.os-version }}-build-cache-${{ env.HB_TAG }}"
-          restore-keys: |
-            "${{ matrix.os-version }}-build-cache-"
+      - name: Prepare build environment
+        run: ./scripts/ci/setup-build-env.sh
       - name: Run build script
         run: ./scripts/build.sh
-        env:
-          DEB_FLAVOR: "${{ matrix.os-version }}"
+      - name: Add flavor suffix to package filename
+        run: |
+          shopt -s nullglob
+          for x in ./*.deb; do
+            base="$(basename "$x")"
+            pkg="${base%%_*}"
+            tail="${base#${pkg}_}"
+            version="${tail%_*}"
+            arch="${tail##*_}"
+            mv "$x" "./${pkg}_${version}~${{ matrix.flavor }}_${arch}"
+          done
       - name: Upload deb files
         uses: actions/upload-artifact@v4
         with:
-          name: packages
+          name: packages-${{ matrix.flavor }}
           path: ./*.deb
+
+  merge-artefacts:
+    name: Merge all deb files to single artifact
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: debian-packages
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: merged-artifacts
+          pattern: packages-*
+
   add_release:
     name: Add package to release
-    needs: build
+    needs: merge-artefacts
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: packages
-      - name: Set env
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "HB_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Set env
-        if: github.event.inputs.hb_tag != ''
-        run: echo "HB_TAG=${{ github.event.inputs.hb_tag }}" >> $GITHUB_ENV
-      - name: Display structure of downloaded files
-        run: ls -R
+          name: merged-artifacts
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ./*.deb
-      - name: Add release (bullseye)
+
+  add_repo:
+    name: Add packages to public debian repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: merge-artefacts
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: "merged-artifacts"
+      - name: Add releases to repo
         uses: smeinecke/apt-repo-action@master
         with:
-          github_token: ${{ secrets.GH_PAT }}
-          repo_supported_arch: amd64
+          github_token: ${{ github.token }}
+          repo_supported_arch: |
+            amd64
           repo_supported_version: |
-            bullseye
+            trixie
             bookworm
-            focal
-            jammy
-            mantic
-          file: |
-            handbrake_${{ env.HB_TAG }}~bullseye_amd64.deb
-            handbrake-cli_${{ env.HB_TAG }}~bullseye_amd64.deb
-          file_target_version: bullseye
-          private_key: ${{ secrets.APT_SIGNING_KEY }}
-          key_passphrase: ""
-      - name: Add release (bookworm)
-        uses: smeinecke/apt-repo-action@master
-        with:
-          github_token: ${{ secrets.GH_PAT }}
-          repo_supported_arch: amd64
-          repo_supported_version: |
             bullseye
-            bookworm
-            focal
-            jammy
-            mantic
+            noble
           file: |
-            handbrake_${{ env.HB_TAG }}~bookworm_amd64.deb
-            handbrake-cli_${{ env.HB_TAG }}~bookworm_amd64.deb
-          file_target_version: bookworm
-          private_key: ${{ secrets.APT_SIGNING_KEY }}
-          key_passphrase: ""
-      - name: Add release (jammy)
-        uses: smeinecke/apt-repo-action@master
-        with:
-          github_token: ${{ secrets.GH_PAT }}
-          repo_supported_arch: amd64
-          repo_supported_version: |
-            bullseye
-            bookworm
-            focal
-            jammy
-            mantic
-          file: |
-            handbrake_${{ env.HB_TAG }}~jammy_amd64.deb
-            handbrake-cli_${{ env.HB_TAG }}~jammy_amd64.deb
-          file_target_version: jammy
-          private_key: ${{ secrets.APT_SIGNING_KEY }}
-          key_passphrase: ""
-      - name: Add release (focal)
-        uses: smeinecke/apt-repo-action@master
-        with:
-          github_token: ${{ secrets.GH_PAT }}
-          repo_supported_arch: amd64
-          repo_supported_version: |
-            bullseye
-            bookworm
-            focal
-            jammy
-            mantic
-          file: |
-            handbrake_${{ env.HB_TAG }}~focal_amd64.deb
-            handbrake-cli_${{ env.HB_TAG }}~focal_amd64.deb
-          file_target_version: focal
-          private_key: ${{ secrets.APT_SIGNING_KEY }}
-          key_passphrase: ""
-      - name: Add release (mantic)
-        uses: smeinecke/apt-repo-action@master
-        with:
-          github_token: ${{ secrets.GH_PAT }}
-          repo_supported_arch: amd64
-          repo_supported_version: |
-            bullseye
-            bookworm
-            focal
-            jammy
-            mantic
-          file: |
-            handbrake_${{ env.HB_TAG }}~mantic_amd64.deb
-            handbrake-cli_${{ env.HB_TAG }}~mantic_amd64.deb
-          file_target_version: mantic
+            *.deb
+          version_by_filename: true
           private_key: ${{ secrets.APT_SIGNING_KEY }}
           key_passphrase: ""
