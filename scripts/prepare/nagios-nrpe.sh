@@ -4,7 +4,7 @@ set -euo pipefail
 old_pkg="nagios-nrpe-server"
 new_pkg="nagios-nrpe-server-ap"
 
-sed -i 's,Package: nagios-nrpe-server,Package: nagios-nrpe-server-ap,g' debian/control
+sed -i "s/^Package: ${old_pkg}\$/Package: ${new_pkg}/" debian/control
 sed -i 's/Conflicts: nagios-nrpe-doc/Conflicts: nagios-nrpe-doc, nagios-nrpe-server/g' debian/control
 sed -i 's/--enable-ssl/--enable-ssl --enable-command-args/' debian/rules
 
@@ -15,9 +15,3 @@ for x in debian/${old_pkg}.*; do
     [ -e "$x" ] || continue
     mv "$x" "debian/${new_pkg}${x#debian/${old_pkg}}"
 done
-
-# Keep internal references aligned in case upstream files embed package names.
-matches="$(grep -rl -- "${old_pkg}" debian || true)"
-if [ -n "${matches}" ]; then
-    echo "${matches}" | xargs -r sed -i "s/${old_pkg}/${new_pkg}/g"
-fi

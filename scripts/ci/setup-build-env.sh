@@ -42,14 +42,7 @@ if [[ "${ID}" == "ubuntu" ]]; then
 fi
 
 apt-get update
-apt-get -y install \
-    wget \
+apt-get -y install --no-install-recommends \
     ca-certificates \
-    gnupg \
-    quilt \
-    vim \
-    debhelper \
-    build-essential \
-    lsb-release \
-    dh-python \
-    devscripts
+    dpkg-dev \
+    build-essential
