@@ -14,7 +14,7 @@ jobs:
       repo_versions: ${{ steps.releases.outputs.repo_versions }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Load Supported Releases
         id: releases
         run: |
@@ -47,7 +47,7 @@ jobs:
       image: "${{ matrix.os-version }}"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Extract release codename
         run: |
           os_version="${{ matrix.os-version }}"
