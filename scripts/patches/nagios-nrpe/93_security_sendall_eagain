@@ -1,0 +1,74 @@
+Description: Retry EAGAIN in sendall() on non-blocking sockets
+ The accepted client socket is O_NONBLOCK (upstream bf4afc8), but
+ sendall() aborted on the first send() error including EAGAIN, so a
+ slow or stalled client could receive a truncated response. sendall()
+ now retries on EAGAIN until the socket timeout, mirroring recvall(),
+ and takes the timeout as an argument (call sites pass socket_timeout).
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/utils.c	2026-10-03 00:40:27.485387202 +0200
++++ b/src/utils.c	2026-10-03 01:13:40.914366849 +0200
+@@ -389,16 +389,27 @@
+ }
+ 
+ /* sends all data - thanks to Beej's Guide to Network Programming */
+-int sendall(int s, char *buf, int *len)
++int sendall(int s, char *buf, int *len, int timeout)
+ {
++	time_t start_time;
++	time_t current_time;
+ 	int total = 0;
+ 	int bytesleft = *len;
+ 	int n = 0;
+ 
++	time(&start_time);
++
+ 	/* send all the data */
+ 	while (total < *len) {
+ 		n = send(s, buf + total, bytesleft, 0);	/* send some data */
+-		if (n == -1)			/* break on error */
++		if (n == -1 && errno == EAGAIN) {
++			/* socket buffer full (non-blocking socket) - retry until timeout */
++			time(&current_time);
++			if (current_time - start_time > timeout)
++				break;
++			sleep(1);
++			continue;
++		} else if (n == -1)			/* break on error */
+ 			break;
+ 		/* apply bytes we sent */
+ 		total += n;
+--- a/include/utils.h	2026-10-03 00:38:00.854453665 +0200
++++ b/include/utils.h	2026-10-03 01:13:40.914422929 +0200
+@@ -42,7 +42,7 @@
+ void add_listen_addr(struct addrinfo**, int, char*, int);
+ int clean_environ(const char *keep_env_vars, const char *nrpe_user);
+ char* strip(char*);
+-int sendall(int, char*, int*);
++int sendall(int, char*, int*, int);
+ int recvall(int, char*, int*, int);
+ char *my_strsep(char**, const char*);
+ void open_log_file();
+--- a/src/check_nrpe.c	2026-10-03 00:38:00.855177672 +0200
++++ b/src/check_nrpe.c	2026-10-03 01:13:47.742134625 +0200
+@@ -1057,7 +1057,7 @@
+ 		rc = ssl_sendall(ssl, send_pkt, bytes_to_send);
+ 	else
+ #endif
+-		rc = sendall(sd, (char *)send_pkt, &bytes_to_send);
++		rc = sendall(sd, (char *)send_pkt, &bytes_to_send, socket_timeout);
+ 
+ 	if (v3_send_packet) {
+ 		free(v3_send_packet);
+--- a/src/nrpe.c	2026-10-03 00:43:25.377026411 +0200
++++ b/src/nrpe.c	2026-10-03 01:13:57.244293361 +0200
+@@ -1878,7 +1897,7 @@
+ 	/* send the response back to the client */
+ 	bytes_to_send = pkt_size;
+ 	if (use_ssl == FALSE)
+-		sendall(sock, send_pkt, &bytes_to_send);
++		sendall(sock, send_pkt, &bytes_to_send, socket_timeout);
+ #ifdef HAVE_SSL
+ 	else
+ 		ssl_sendall(ssl, send_pkt, bytes_to_send);

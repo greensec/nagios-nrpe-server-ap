@@ -45,6 +45,12 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
   - the default `nasty_metachars` blacklist additionally rejects
     `$`, `"`, `#`, `~` (`$IFS` expansion, quote injection, shell
     comments and tilde expansion)
+- robustness (`debian/patches/93_security_*`): `include`/`include_dir`
+  nesting is bounded at 8 levels (a config cycle previously recursed
+  until stack exhaustion), `stat()` failures and empty `include_dir=`
+  paths no longer touch uninitialized/out-of-bounds memory, and
+  `sendall()` retries `EAGAIN` on the non-blocking client socket so a
+  stalled client can't truncate a response
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary

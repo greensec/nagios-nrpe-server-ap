@@ -1,0 +1,93 @@
+Description: Bound config include recursion and fix an empty-path edge case
+ include= and include_dir= directives are honored inside included files
+ and read_config_dir() also recurses into subdirectories, all without a
+ depth limit - a configuration cycle (e.g. a file in /etc/nagios/nrpe.d
+ that includes its own directory) recurses until the stack is exhausted
+ and the daemon crashes. A MAX_CONFIG_INCLUDE_DEPTH of 8 now bounds
+ all include recursion; excess includes are skipped with an error
+ message instead of aborting.
+ Also in read_config_dir(): stat() failures left 'buf' uninitialized
+ before S_ISREG/S_ISDIR tests - the entry is now skipped instead, and
+ the trailing-slash strip for include_dir no longer reads index -1 on
+ an empty path.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 00:43:25.377026411 +0200
++++ b/src/nrpe.c	2026-10-03 01:13:57.244293361 +0200
+@@ -678,6 +678,10 @@
+ 	return copy;
+ }
+ 
++/* maximum nesting depth for include/include_dir directives */
++#define MAX_CONFIG_INCLUDE_DEPTH	8
++static int config_include_depth = 0;
++
+ /* read in the configuration file */
+ int read_config_file(char *filename)
+ {
+@@ -744,19 +748,25 @@
+ 			config_file[sizeof(config_file) - 1] = '\x0';
+ 
+ 			/* strip trailing / if necessary */
+-			if (config_file[strlen(config_file) - 1] == '/')
++			if (config_file[0] != '\0' && config_file[strlen(config_file) - 1] == '/')
+ 				config_file[strlen(config_file) - 1] = '\x0';
+ 
+ 			/* process the config directory... */
+-			if (read_config_dir(config_file) == ERROR)
++			if (++config_include_depth > MAX_CONFIG_INCLUDE_DEPTH)
++				logit(LOG_ERR, "Maximum config include depth exceeded - skipping '%s'", config_file);
++			else if (read_config_dir(config_file) == ERROR)
+ 				logit(LOG_ERR, "Continuing with errors...");
++			config_include_depth--;
+ 
+ 		} else if (!strcmp(varname, "include") || !strcmp(varname, "include_file")) {
+ 			/* allow users to specify individual config files to include */
+ 
+ 			/* process the config file... */
+-			if (read_config_file(varvalue) == ERROR)
++			if (++config_include_depth > MAX_CONFIG_INCLUDE_DEPTH)
++				logit(LOG_ERR, "Maximum config include depth exceeded - skipping '%s'", varvalue);
++			else if (read_config_file(varvalue) == ERROR)
+ 				logit(LOG_ERR, "Continuing with errors...");
++			config_include_depth--;
+ 
+ 		} else if (!strcmp(varname, "max_commands")) {
+ 
+@@ -1028,7 +1038,8 @@
+ 			continue;
+ 		}
+ 		config_file[sizeof(config_file) - 1] = '\x0';
+-		stat(config_file, &buf);
++		if (stat(config_file, &buf) != 0)
++			continue;
+ 
+ 		/* process this if it's a config file... */
+ 		x = strlen(dirfile->d_name);
+@@ -1039,7 +1050,11 @@
+ 				continue;
+ 
+ 			/* process the config file */
+-			result |= read_config_file(config_file);
++			if (++config_include_depth <= MAX_CONFIG_INCLUDE_DEPTH)
++				result |= read_config_file(config_file);
++			else
++				logit(LOG_ERR, "Maximum config include depth exceeded - skipping '%s'", config_file);
++			config_include_depth--;
+ 		}
+ 
+ 		/* recurse into subdirectories... */
+@@ -1050,7 +1065,11 @@
+ 				continue;
+ 
+ 			/* process the config directory */
+-			result |= read_config_dir(config_file);
++			if (++config_include_depth <= MAX_CONFIG_INCLUDE_DEPTH)
++				result |= read_config_dir(config_file);
++			else
++				logit(LOG_ERR, "Maximum config include depth exceeded - skipping '%s'", config_file);
++			config_include_depth--;
+ 		}
+ 	}
+ 
