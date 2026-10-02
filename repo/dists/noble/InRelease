@@ -1,0 +1,36 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Codename: noble
+Date: Fri, 02 Oct 2026 19:57:11 UTC
+Architectures: amd64
+Components: main
+Description: greensec/nagios-nrpe-server-ap
+MD5Sum:
+ 87c047f22903a5a4fbb22674bb722d10 1289 main/binary-amd64/Packages
+ d845cb21823365e5b73aedeaceb1b9ba 755 main/binary-amd64/Packages.gz
+ 2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+SHA1:
+ f6d2887e6bd4b5abaf615cdb11dd8d8936a4dfaf 1289 main/binary-amd64/Packages
+ 6bd78d34c67373fa419d7d48a688599d3876fdc7 755 main/binary-amd64/Packages.gz
+ f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+SHA256:
+ f9618b7cac1e5fa6d026f59233e94ee145a4f2eb3d7fd0ca1542513b43ec355f 1289 main/binary-amd64/Packages
+ 0d557f46049c69d71d3d986a2ab400569771501cc8f488bb47513f1dd2bb1b2b 755 main/binary-amd64/Packages.gz
+ 78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrADJcACgkQLfCqaigF
+WCnLew//W/LUyhp/cVULHRQaUYeDmSxXlhU2Bnz+pGkxg4WjMKh4U2F7kHg3a3TK
+NoMdUVHi2AU7ASdKxggEGwR/q3HxlS3RQh/xL0b1Y+468c3dMqZcWmeqCe/hfc8O
+isikZWo80P8I2iBy5zYOmzE47cylOBVC4SphuJPaAugmk3g94b5DmPepmcepBN8Z
+D0QQ0kWIn/P4DadTMw3xvlcVIVxsz++5GbYidllg+fOWt+x1FgX55K4LevplC0xm
+azbn24OjiFtLJa+8WYLIZMpMGLm+4zGynRxuotNaFLDeJJz2ptbHMxr9TGnKaYW2
+obH3hnhPZAjsT9sK+KRI7lcFfj0MqjcS935/PVfZSzX9ATjzozGWQk73VTxwtt/j
+1WjBb0PivTBiIoYHFEVzKjxADpK+0YzTG56YbK9ZSaU6WqR8Pp0unh8Ks7YrozSF
+SU6hCtkSUntd6/lJL3fy9O/p00hpaiTEb2JaOfPpyocjXjU7y1dkLP8FXkD0SDKz
+DjfBD7127rkv3IBL4fYl800jqH70tgHyAbfgf8+a6IyElPKOW7t5GN89nwTdiofN
+BBgbWotTjrudUdchBR3IxPBhIWewg5mRr9vWMWR41+KMu+rdgTw8IbePtPf92wyo
+3ruwlGAecc2BaT5C0/JYQRDTBHA0sYe5UYHup8738iDj1qsFVzs=
+=xss5
+-----END PGP SIGNATURE-----

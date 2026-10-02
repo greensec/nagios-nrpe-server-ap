@@ -1,0 +1,17 @@
+Codename: bookworm
+Date: Fri, 02 Oct 2026 19:57:11 UTC
+Architectures: amd64
+Components: main
+Description: greensec/nagios-nrpe-server-ap
+MD5Sum:
+ b05cdb4f96d816e6c1f21808c92e88d2 1292 main/binary-amd64/Packages
+ 6ac0f70b34802c11aac0e2f84736cdf0 755 main/binary-amd64/Packages.gz
+ 2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+SHA1:
+ e7484fa07a8e413810bb64d4b5766eba218be98b 1292 main/binary-amd64/Packages
+ 6f21074e4a5cc97b5721f250952f2e271467198a 755 main/binary-amd64/Packages.gz
+ f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+SHA256:
+ 5fc6d19de56482c646148fcd3e2e4cfcf44b06b272d636338336d33b59edd9dd 1292 main/binary-amd64/Packages
+ f43ca2579442787713acac31eaea6cf8216508be4f255c104182b3e11bf1337b 755 main/binary-amd64/Packages.gz
+ 78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release

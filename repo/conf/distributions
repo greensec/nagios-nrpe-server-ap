@@ -1,0 +1,24 @@
+Description: greensec/nagios-nrpe-server-ap
+Codename: bullseye
+Architectures: amd64
+Components: main
+SignWith: 964E93C09EE45E9046F65B882DF0AA6A28055829
+
+Description: greensec/nagios-nrpe-server-ap
+Codename: bookworm
+Architectures: amd64
+Components: main
+SignWith: 964E93C09EE45E9046F65B882DF0AA6A28055829
+
+Description: greensec/nagios-nrpe-server-ap
+Codename: trixie
+Architectures: amd64
+Components: main
+SignWith: 964E93C09EE45E9046F65B882DF0AA6A28055829
+
+Description: greensec/nagios-nrpe-server-ap
+Codename: noble
+Architectures: amd64
+Components: main
+SignWith: 964E93C09EE45E9046F65B882DF0AA6A28055829
+
