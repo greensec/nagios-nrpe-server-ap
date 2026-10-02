@@ -145,6 +145,12 @@ for PACKAGE in "${PACKAGES[@]}"; do
     MINOR_NUM="${MINOR%%[^0-9]*}"
     CUSTOM_MINOR=$((${MINOR_NUM:-0}*1000+${BUILD}))
 
+    # append the distro codename so every target gets a unique package
+    # version - the APT repo publisher dedups on name+version and
+    # reprepro stores one pool file per version
+    DISTRO_CODENAME=$( . /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME}" )
+    DISTRO_SUFFIX="~${DISTRO_CODENAME:-local}1"
+
     # dpkg expects the upstream tarball as <pkg>_<upstream-version>.orig.tar.*
     # (no Debian revision, no epoch). Only create it if it is not already
     # present - "apt source" downloads the real one, and repacking the
@@ -164,7 +170,7 @@ for PACKAGE in "${PACKAGES[@]}"; do
     fi
 
     cat <<EOF >debian/changelog.2
-${PACKAGE} (${MAJOR}-${CUSTOM_MINOR}) stable; urgency=medium
+${PACKAGE} (${MAJOR}-${CUSTOM_MINOR}${DISTRO_SUFFIX}) stable; urgency=medium
 
   * Custom build
 

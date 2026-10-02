@@ -128,6 +128,7 @@ desired flavor:
 The script fetches the newest `nagios-nrpe` source package published in
 Debian unstable (currently 4.1.3) so every supported distro is built from the
 same latest upstream release, applies the changes from `scripts/prepare/` and
-`scripts/patches/`, bumps the version to `<upstream>-<revision>*1000+<build>`
+`scripts/patches/`, bumps the version to
+`<upstream>-<revision>*1000+<build>~<codename>1` (e.g. `4.1.3-1001~trixie1`)
 and produces the `.deb` files in the working directory. Supported flavors are
 listed in `.github/supported-releases.txt`.

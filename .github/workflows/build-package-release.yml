@@ -61,7 +61,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         if: (startsWith(github.ref, 'refs/tags/') && github.event.inputs.release == 'true')
         with:
-          files: ./*.deb
+          files: ./nagios-nrpe-server-ap_*.deb
       - name: Github pages APT repo
         uses: smeinecke/apt-repo-action@v2.2.1
         if: github.event.inputs.release == 'true'
@@ -70,7 +70,7 @@ jobs:
           repo_supported_arch: amd64
           repo_supported_version: ${{ steps.releases.outputs.repo_versions }}
           file: |
-            *.deb
+            nagios-nrpe-server-ap_*.deb
           file_target_version: ${{ env.debian_release }}
           private_key: ${{ secrets.APT_SIGNING_KEY }}
           key_passphrase: ""
