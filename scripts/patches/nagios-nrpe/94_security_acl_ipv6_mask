@@ -1,0 +1,27 @@
+Description: Reject non-numeric IPv6 prefix lengths in allowed_hosts
+ add_ipv6_to_acl() parsed the netmask with atoi(), which silently maps
+ garbage to 0: an entry like "fe80::/typo" became ::/0, an allow-all
+ IPv6 ACL entry. The mask is now validated as all-digits before
+ conversion; invalid entries are logged and refused instead of
+ silently widening access.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/acl.c	2026-10-03 01:14:43.113157567 +0200
++++ b/src/acl.c	2026-10-03 01:25:00.455339860 +0200
+@@ -316,6 +316,15 @@
+ 	/* Check whether there is a netmask */
+ 	if (mask_part && *mask_part) {
+ 		/* If so, build a netmask */
++		/* The mask must be all digits - atoi() would silently map
++		   garbage like "::/abc" to 0, i.e. an allow-all /0 entry */
++		for (x = 0; mask_part[x]; x++) {
++			if (mask_part[x] < '0' || mask_part[x] > '9') {
++				logit(LOG_ERR, "Invalid IPv6 network mask format(%s) in allowed_hosts option\n", ipv6);
++				free(ipv6tmp);
++				return 0;
++				}
++			}
+ 		/* Get the number of bits in the mask */
+ 		maskval = atoi(mask_part);
+ 		if(maskval < 0 || maskval > 128) {

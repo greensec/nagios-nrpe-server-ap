@@ -1,0 +1,44 @@
+Description: Resolve passwd entry for initgroups during privilege drop
+ initgroups() was called with the raw nrpe_user string: a numeric
+ user ID (e.g. nrpe_user=1000) failed the lookup, and an unset
+ nrpe_group passed (gid_t)-1 as the base group - both now fatal under
+ the fail-closed privilege drop. The passwd entry is now resolved via
+ getpwuid() for numeric users, the user's primary gid is used when no
+ group is configured, and when no passwd entry exists at all the
+ supplementary group list is cleared explicitly instead of inheriting
+ root's groups.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 01:14:43.143427534 +0200
++++ b/src/nrpe.c	2026-10-03 01:25:00.428399019 +0200
+@@ -2475,8 +2489,28 @@
+ 		if (uid != geteuid()) {
+ 		/* set effective user ID if other than current EUID */
+ #ifdef HAVE_INITGROUPS
++			const char *ig_user = NULL;
++			gid_t      ig_gid = gid;
++			struct passwd *ig_pw = pw;
++
++			/* resolve a passwd entry for initgroups when user was numeric */
++			if (ig_pw == NULL)
++				ig_pw = getpwuid(uid);
++			if (ig_pw != NULL) {
++				ig_user = ig_pw->pw_name;
++				if (ig_gid == (gid_t)-1)
++					ig_gid = ig_pw->pw_gid;
++			}
++
+ 			/* initialize supplementary groups */
+-			if (initgroups(user, gid) == -1) {
++			if (ig_user == NULL || ig_gid == (gid_t)-1) {
++				/* no passwd entry to resolve groups from - clear them explicitly
++				   instead of keeping root's supplementary groups */
++				if (setgroups(0, NULL) == -1 && errno != EPERM) {
++					logit(LOG_ERR, "Error: Could not clear supplementary groups");
++					return ERROR;
++				}
++			} else if (initgroups(ig_user, ig_gid) == -1) {
+ 				if (errno == EPERM)
+ 					logit(LOG_ERR, "Warning: Unable to change supplementary groups using initgroups()");
+ 				else {

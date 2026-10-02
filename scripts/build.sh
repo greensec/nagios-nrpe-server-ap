@@ -8,7 +8,7 @@ source "$SCRIPTDIR/common.sh"
 set -e
 
 if [ -z "${BUILD}" ]; then
-    BUILD="6"
+    BUILD="7"
 elif ! [[ "${BUILD}" =~ ^[0-9]+$ ]]; then
     errorline "BUILD must be a number, got: ${BUILD}"
     exit 1

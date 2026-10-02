@@ -1,0 +1,20 @@
+Description: Enforce allowed_hosts in inetd mode
+ conn_check_peer() (the allowed_hosts ACL and libwrap check) was only
+ called from the daemon accept loop. In inetd mode handle_connection()
+ ran directly, so allowed_hosts was silently never enforced and
+ remote_host stayed unset in logs. run_inetd() now calls
+ conn_check_peer(0) like the daemon path; tcpd/xinetd-level ACLs
+ remain an additional layer, not a replacement.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 01:14:43.143427534 +0200
++++ b/src/nrpe.c	2026-10-03 01:25:00.428399019 +0200
+@@ -484,6 +484,7 @@
+ 	check_privileges();			/* make sure we're not root */
+ 	close(2);					/* redirect STDERR to /dev/null */
+ 	open("/dev/null", O_WRONLY);
++	conn_check_peer(0);			/* enforce allowed_hosts/libwrap and set remote_host */
+ 	handle_connection(0);		/* handle the connection */
+ }
+ 

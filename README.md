@@ -51,6 +51,15 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
   paths no longer touch uninitialized/out-of-bounds memory, and
   `sendall()` retries `EAGAIN` on the non-blocking client socket so a
   stalled client can't truncate a response
+- additional hardening (`debian/patches/94_security_*`): `my_system()`
+  no longer performs a wild pointer write on the fork-failure path,
+  treats signal-killed plugins as failures instead of possibly
+  `STATE_OK`, and checks the output-buffer allocation; non-numeric
+  IPv6 prefix lengths in `allowed_hosts` are rejected instead of
+  silently becoming `::/0`; privilege dropping resolves the passwd
+  entry for `initgroups()` so numeric `nrpe_user` values and a missing
+  `nrpe_group` work correctly under the fail-closed policy; and
+  `allowed_hosts` is now enforced in inetd mode as well
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary

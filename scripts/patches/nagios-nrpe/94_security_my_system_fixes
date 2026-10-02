@@ -1,0 +1,59 @@
+Description: Fix three my_system() output/status handling bugs
+ - Fork-failure path wrote '*output[output_size - 1]' which parses as
+   *(output[i]): a pointer dereference through an out-of-bounds array
+   index, i.e. a wild write instead of terminating the buffer.
+ - The parent never checked waitpid() or WIFEXITED(), so a plugin
+   killed by a signal (timeout SIGKILL, OOM killer, crash) yielded a
+   garbage status whose WEXITSTATUS could read as 0, reporting a dead
+   plugin as STATE_OK. Signal death/wait failure now maps to
+   STATE_CRITICAL, which also feeds the early_timeout detection.
+ - The 64K output calloc() was unchecked; a failure left *output NULL
+   and the caller then crashed in strcmp(). Falls back to a small
+   error string, exits the connection child if even that fails.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 01:14:43.143427534 +0200
++++ b/src/nrpe.c	2026-10-03 01:25:00.428399019 +0200
+@@ -2257,8 +2258,14 @@
+ 		if (packet_ver == NRPE_PACKET_VERSION_2) {
+ 			int       output_size = sizeof(v2_packet);
+ 			*output = calloc(1, output_size);
++			if (*output == NULL) {
++				logit(LOG_ERR, "ERROR: my_system() could not allocate output buffer");
++				close(fd[0]);
++				close(fd[1]);
++				return STATE_UNKNOWN;
++			}
+ 			strncpy(*output, buffer, output_size - 1);
+-			*output[output_size - 1] = '\0';
++			(*output)[output_size - 1] = '\0';
+ 		} else
+ 			*output = strdup(buffer);
+ 
+@@ -2341,9 +2348,11 @@
+ 		commands_running++;
+ 
+ 		close(fd[1]);			/* close pipe for writing */
+-		waitpid(pid, &status, 0);	/* wait for child to exit */
++		if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status))
++			result = STATE_CRITICAL;	/* child was killed or wait failed */
++		else
++			result = WEXITSTATUS(status);	/* get the exit code returned from the program */
+ 		time(&end_time);		/* get the end time for running the command */
+-		result = WEXITSTATUS(status);	/* get the exit code returned from the program */
+ 
+ 		/* because of my idiotic idea of having UNKNOWN states be equivalent to -1, I must hack things a bit... */
+ 		if (result == 255)
+@@ -2360,6 +2369,11 @@
+ 			output_size = 1024 * 64;	/* Maximum buffer is 64K */
+ 			*output = calloc(1, output_size);
+ 		}
++		if (*output == NULL) {
++			logit(LOG_ERR, "ERROR: my_system() could not allocate output buffer");
++			if ((*output = strdup("NRPE: Unable to allocate output buffer\n")) == NULL)
++				exit(STATE_CRITICAL);
++		}
+ 
+ 		/* try and read the results from the command output (retry if we encountered a signal) */
+ 		for (;;) {
