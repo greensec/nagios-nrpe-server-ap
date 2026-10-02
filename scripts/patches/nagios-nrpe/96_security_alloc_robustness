@@ -1,0 +1,184 @@
+Description: Memory-safety hardening from -fanalyzer over remaining TUs
+ - utils.c clean_environ(): 'var' was uninitialized and realloc()
+   unchecked - first realloc() could free a wild pointer, a failure
+   was followed by a NULL strncpy(). Now initialized and safely
+   realloc'd, aborting sanitization on OOM.
+ - acl.c: ipv6tmp leaked on the ACL-entry malloc failure; trim()
+   called isspace() on signed chars (UB for high-bit bytes) and
+   lacked NULL guards; the per-token malloc in parse_allowed_hosts()
+   was unchecked (NULL dereference via trim()).
+ - nrpe.c: isspace() on signed chars in the config parser (same UB).
+ - check_nrpe.c: send/response packet calloc()s unchecked, and the
+   v3/v4 response path could dereference a NULL v3_receive_packet
+   when the server reply was malformed. The received buffer is now
+   also force-terminated before printing ("%s" on wire data).
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 01:38:01.928512166 +0200
++++ b/src/nrpe.c	2026-10-03 01:56:07.858707706 +0200
+@@ -722,13 +722,13 @@
+ 		input_line = input_buffer;
+ 
+ 		/* skip leading whitespace */
+-		while (isspace(*input_line))
++		while (isspace((unsigned char) *input_line))
+ 			++input_line;
+ 
+ 		/* trim trailing whitespace */
+ 		len = strlen(input_line);
+ 		for (x = len - 1; x >= 0; x--) {
+-			if (isspace(input_line[x]))
++			if (isspace((unsigned char) input_line[x]))
+ 				input_line[x] = '\x0';
+ 			else
+ 				break;
+--- a/src/utils.c	2026-10-03 01:38:01.905007356 +0200
++++ b/src/utils.c	2026-10-03 01:56:07.858227361 +0200
+@@ -266,7 +266,7 @@
+ #endif
+ 	struct passwd *pw = NULL;
+ 	size_t len, var_sz = 0;
+-	char **kept = NULL, *value, *var, *keep = NULL, *tmp;
++	char **kept = NULL, *value, *var = NULL, *keep = NULL, *tmp;
+ 	int i, j, keepcnt = 0;
+ 
+ 	if (keep_env_vars && *keep_env_vars)
+@@ -305,8 +305,16 @@
+ 			return ERROR;
+ 		}
+ 		if (len >= var_sz) {
++			char *new_var = realloc(var, len + 1);
++			if (new_var == NULL) {
++				free(keep);
++				free(kept);
++				free(var);
++				logit(LOG_ERR, "Could not sanitize the environment. Aborting!");
++				return ERROR;
++			}
++			var = new_var;
+ 			var_sz = len + 1;
+-			var = realloc(var, var_sz);
+ 		}
+ 		strncpy(var, environ[i], var_sz);
+ 		var[len] = 0;
+--- a/src/acl.c	2026-10-03 01:38:01.908610671 +0200
++++ b/src/acl.c	2026-10-03 01:56:07.858412883 +0200
+@@ -361,6 +361,7 @@
+ 	ip_acl_curr = malloc(sizeof(*ip_acl_curr));
+ 	if(NULL == ip_acl_curr) {
+ 		logit(LOG_ERR, "Memory allocation failed for ACL: %s\n", ipv6);
++		free(ipv6tmp);
+ 		return 0;
+ 		}
+ 
+@@ -667,8 +668,11 @@
+ void trim( char *src, char *dest) {
+ 	char *sptr, *dptr;
+ 
+-	for( sptr = src; isspace( *sptr) && *sptr; sptr++); /* Jump past leading spaces */
+-	for( dptr = dest; !isspace( *sptr) && *sptr; ) {
++	if (src == NULL || dest == NULL)
++		return;
++
++	for( sptr = src; isspace((unsigned char) *sptr) && *sptr; sptr++); /* Jump past leading spaces */
++	for( dptr = dest; !isspace((unsigned char) *sptr) && *sptr; ) {
+ 		*dptr = *sptr;
+ 		sptr++;
+ 		dptr++;
+@@ -734,6 +738,10 @@
+ #endif
+ 	while( tok) {
+ 		trimmed_tok = malloc(sizeof(char) * (strlen(tok) + 1));
++		if (trimmed_tok == NULL) {
++			logit(LOG_ERR, "Memory allocation failed while parsing allowed_hosts\n");
++			break;
++			}
+ 		trim(tok, trimmed_tok);
+ 		if (debug == TRUE)
+ 			logit(LOG_DEBUG, "parse_allowed_hosts: ADDING this record (%s) to ACL list!\n", trimmed_tok);
+--- a/src/check_nrpe.c	2026-10-03 01:38:01.905224698 +0200
++++ b/src/check_nrpe.c	2026-10-03 01:57:37.913496999 +0200
+@@ -1001,6 +1001,10 @@
+ 		if (payload_size > 0)
+ 			pkt_size = sizeof(v2_packet) - MAX_PACKETBUFFER_LENGTH + payload_size;
+ 		v2_send_packet = (v2_packet*)calloc(1, pkt_size);
++		if (v2_send_packet == NULL) {
++			printf("CHECK_NRPE: Unable to allocate memory for send packet.\n");
++			return STATE_UNKNOWN;
++		}
+ 		send_pkt = (char *)v2_send_packet;
+ 
+ 		/* fill the packet with semi-random data */
+@@ -1033,6 +1037,10 @@
+ 		}
+ 
+ 		v3_send_packet = calloc(1, pkt_size);
++		if (v3_send_packet == NULL) {
++			printf("CHECK_NRPE: Unable to allocate memory for send packet.\n");
++			return STATE_UNKNOWN;
++		}
+ 		send_pkt = (char *)v3_send_packet;
+ 		/* initialize response packet data */
+ 		v3_send_packet->packet_version = htons(packet_ver);
+@@ -1084,6 +1092,7 @@
+ 	u_int32_t calculated_crc32;
+ 	int32_t pkt_size, buffer_size;
+ 	int rc, result;
++	v3_packet *v3p;
+ 
+ 	alarm(0);
+ 	set_sig_handlers();
+@@ -1133,9 +1142,17 @@
+ 	}
+ 
+ 	/* check the crc 32 value */
+-	if (packet_ver >= NRPE_PACKET_VERSION_3) {
++	v3p = (packet_ver >= NRPE_PACKET_VERSION_3) ? v3_receive_packet : NULL;
++	if (packet_ver >= NRPE_PACKET_VERSION_3 && v3p == NULL) {
++		printf("CHECK_NRPE: Response packet missing.\n");
++		if (v2_receive_packet) {
++			free(v2_receive_packet);
++		}
++		return STATE_UNKNOWN;
++	}
++	if (v3p != NULL) {
+ 
+-		buffer_size = ntohl(v3_receive_packet->buffer_length);
++		buffer_size = ntohl(v3p->buffer_length);
+ 		if (buffer_size < 0 || buffer_size > 65536) {
+ 			printf("CHECK_NRPE: Response packet had invalid buffer size.\n");
+ 			close(sd);
+@@ -1152,10 +1169,10 @@
+ 		pkt_size -= (packet_ver == NRPE_PACKET_VERSION_3 ? NRPE_V3_PACKET_SIZE_OFFSET : NRPE_V4_PACKET_SIZE_OFFSET);
+ 		pkt_size += buffer_size;
+ 
+-		packet_crc32 = ntohl(v3_receive_packet->crc32_value);
+-		v3_receive_packet->crc32_value = 0L;
+-		v3_receive_packet->alignment = 0;
+-		calculated_crc32 = calculate_crc32((char *)v3_receive_packet, pkt_size);
++		packet_crc32 = ntohl(v3p->crc32_value);
++		v3p->crc32_value = 0L;
++		v3p->alignment = 0;
++		calculated_crc32 = calculate_crc32((char *)v3p, pkt_size);
+ 	} else {
+ 		pkt_size = sizeof(v2_packet);
+ 		if (payload_size > 0) {
+@@ -1180,12 +1197,13 @@
+ 
+ 	/* get the return code from the remote plugin */
+ 	/* and print the output returned by the daemon */
+-	if (packet_ver >= NRPE_PACKET_VERSION_3) {
+-		result = ntohs(v3_receive_packet->result_code);
+-		if (v3_receive_packet->buffer_length == 0) {
++	if (v3p != NULL) {
++		result = ntohs(v3p->result_code);
++		if (v3p->buffer_length == 0) {
+ 			printf("CHECK_NRPE: No output returned from daemon.\n");
+ 		} else {
+-			printf("%s\n", v3_receive_packet->buffer);
++			v3p->buffer[buffer_size - 1] = '\x0';
++			printf("%s\n", v3p->buffer);
+ 		}
+ 	} else {
+ 		result = ntohs(v2_receive_packet->result_code);

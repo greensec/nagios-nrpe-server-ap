@@ -66,6 +66,12 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
   connections of unknown address families instead of skipping the
   ACL, and its error paths no longer leave a closed descriptor for
   the caller to double-close
+- allocation robustness (`debian/patches/96_security_alloc_robustness`):
+  unchecked `realloc`/`malloc`/`calloc` in `clean_environ`, the ACL
+  parsers and `check_nrpe` are now handled (including an uninitialized
+  `var` that made the first `realloc` free a wild pointer), and the
+  `check_nrpe` client force-terminates received payloads before
+  printing them
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary
