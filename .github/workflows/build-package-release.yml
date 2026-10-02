@@ -60,7 +60,7 @@ jobs:
         with:
           files: ./*.deb
       - name: Github pages APT repo
-        uses: smeinecke/apt-repo-action@v2.2.0
+        uses: smeinecke/apt-repo-action@v2.2.1
         if: github.event.inputs.release == 'true'
         with:
           github_token: ${{ github.token }}
