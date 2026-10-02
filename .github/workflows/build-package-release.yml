@@ -23,7 +23,7 @@ jobs:
       image: "${{ inputs.flavor }}"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Validate flavor and extract codename
         run: |
           set -eu
