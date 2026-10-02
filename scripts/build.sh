@@ -4,11 +4,14 @@ WORKDIR="${PWD}"
 SCRIPT=$(readlink -f "$0")
 SCRIPTDIR=$(dirname "${SCRIPT}")
 
-source $SCRIPTDIR/common.sh
+source "$SCRIPTDIR/common.sh"
 set -e
 
-if [ -z $BUILD ]; then
+if [ -z "${BUILD}" ]; then
     BUILD="1"
+elif ! [[ "${BUILD}" =~ ^[0-9]+$ ]]; then
+    errorline "BUILD must be a number, got: ${BUILD}"
+    exit 1
 fi
 
 PACKAGE_NAME="nagios-nrpe"
@@ -21,7 +24,7 @@ apt-get -y build-dep nagios-nrpe
 apt-get -y install nagios-nrpe-server
 
 BASE_VERSION=$(dpkg-query -f '${Version}' -W "nagios-nrpe-server")
-if [ -z $BASE_VERSION ]; then
+if [ -z "${BASE_VERSION}" ]; then
     errorline "Failed to fetch ${PACKAGE_NAME} base verison!"
     exit 1
 fi
@@ -32,34 +35,40 @@ statusline "Found ${PACKAGE_NAME} ${BASE_VERSION}"
 
 PACKAGES=("${PACKAGE_NAME}")
 
-for PACKAGE in ${PACKAGES[@]}; do
+for PACKAGE in "${PACKAGES[@]}"; do
     CHECK_VERSION=1
-    if [ -d $SCRIPTDIR/download/${PACKAGE}-${BASE_MAJOR} ]; then
+    if [ -d "$SCRIPTDIR/download/${PACKAGE}-${BASE_MAJOR}" ]; then
         statusline "Copy local package ${PACKAGE}"
-        cp -a $SCRIPTDIR/download/${PACKAGE}-${BASE_MAJOR} .
-    elif [ -d $SCRIPTDIR/download/${PACKAGE} ]; then
+        cp -a "$SCRIPTDIR/download/${PACKAGE}-${BASE_MAJOR}" .
+    elif [ -d "$SCRIPTDIR/download/${PACKAGE}" ]; then
         statusline "Copy local package ${PACKAGE}"
-        cp -a $SCRIPTDIR/download/${PACKAGE} .
+        cp -a "$SCRIPTDIR/download/${PACKAGE}" .
         CHECK_VERSION=0
     elif compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.*" >/dev/null; then
-        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2" >/dev/null; then
-            statusline "Extracting ${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2"
-            tar xjf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.bz2
-        fi
-        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.xz" >/dev/null; then
-            statusline "Extracting ${PACKAGE}_${BASE_MAJOR}.orig.tar.xz"
-            tar xJf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}.orig.tar.xz
-        fi
+        for tarball in "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}".orig.tar.*; do
+            statusline "Extracting $(basename "${tarball}")"
+            tar xf "${tarball}"
+        done
 
-        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2" >/dev/null; then
-            statusline "Extracting ${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2"
-            tar xjf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.bz2
-        fi
+        # the debian tarball must be extracted into the source tree
+        # extracted above, not into the working directory.
+        srcdir=""
+        for d in "${PACKAGE}"-*/; do
+            if [ -d "$d" ]; then
+                srcdir="${d%/}"
+                break
+            fi
+        done
 
-        if compgen -G "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz" >/dev/null; then
-            statusline "Extracting ${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz"
-            tar xJf $SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}-*.debian.tar.xz
-        fi
+        for tarball in "$SCRIPTDIR/download/${PACKAGE}_${BASE_MAJOR}"-*.debian.tar.*; do
+            [ -e "${tarball}" ] || continue
+            if [ -z "${srcdir}" ]; then
+                errorline "No ${PACKAGE}-* source directory found for $(basename "${tarball}")"
+                exit 1
+            fi
+            statusline "Extracting $(basename "${tarball}") into ${srcdir}"
+            tar xf "${tarball}" -C "${srcdir}"
+        done
     else
         statusline "Fetching ${PACKAGE}"
         apt source -y ${PACKAGE}
@@ -67,20 +76,21 @@ for PACKAGE in ${PACKAGES[@]}; do
 
     # switch to package
     if [ "$CHECK_VERSION" == "1" ]; then
-        cd ${PACKAGE}-*
+        cd "${PACKAGE}"-*/
     else
-        cd ${PACKAGE}
+        cd "${PACKAGE}"
     fi
 
-    if [ -e $SCRIPTDIR/prepare/${PACKAGE}.sh ]; then
+    if [ -e "$SCRIPTDIR/prepare/${PACKAGE}.sh" ]; then
         mkdir -p debian
-        cp $SCRIPTDIR/prepare/${PACKAGE}.sh debian/prepare.sh
+        cp "$SCRIPTDIR/prepare/${PACKAGE}.sh" debian/prepare.sh
         statusline "Running prepare/${PACKAGE}.sh"
-        . ./debian/prepare.sh
+        # run in a subshell so its "set -euo pipefail" does not leak into us
+        bash ./debian/prepare.sh
     fi
 
-    VERSION=$(head -n1 debian/changelog | grep -o -E '^.*\((.*)\)' | sed -e 's,.*(,,' -e 's,),,')
-    if [ -z $VERSION ]; then
+    VERSION=$(dpkg-parsechangelog -l debian/changelog -S Version)
+    if [ -z "$VERSION" ]; then
         errorline "Failed to fetch package version!"
         exit 1
     fi
@@ -101,14 +111,27 @@ for PACKAGE in ${PACKAGES[@]}; do
         MINOR="1"
     fi
 
-    CUSTOM_MINOR=$((${MINOR}*1000+${BUILD}))
-    tar -cjf ../${PACKAGE}_${MAJOR}-${CUSTOM_MINOR}.orig.tar.bz2 --exclude=debian .
-    if [ -d $SCRIPTDIR/patches/${PACKAGE} ]; then
-        for x in $SCRIPTDIR/patches/${PACKAGE}/*; do
-            statusline "Add patch $(basename ${x}) to ${PACKAGE}"
+    # Debian/Ubuntu revisions can contain non-numeric suffixes
+    # (e.g. "1ubuntu3" or "1+deb12u1") which break the arithmetic
+    # below; use only the leading numeric part.
+    MINOR_NUM="${MINOR%%[^0-9]*}"
+    CUSTOM_MINOR=$((${MINOR_NUM:-0}*1000+${BUILD}))
+
+    # dpkg expects the upstream tarball as <pkg>_<upstream-version>.orig.tar.*
+    # (no Debian revision, no epoch). Only create it if it is not already
+    # present - "apt source" downloads the real one, and repacking the
+    # extracted tree would bake already-applied quilt patches into it.
+    UPSTREAM="${MAJOR#*:}"
+    if ! compgen -G "../${PACKAGE}_${UPSTREAM}.orig.tar.*" >/dev/null; then
+        tar -cjf "../${PACKAGE}_${UPSTREAM}.orig.tar.bz2" --exclude=debian --exclude=.pc --exclude-vcs .
+    fi
+    if [ -d "$SCRIPTDIR/patches/${PACKAGE}" ]; then
+        for x in "$SCRIPTDIR/patches/${PACKAGE}"/*; do
+            [ -e "${x}" ] || continue
+            statusline "Add patch $(basename "${x}") to ${PACKAGE}"
             mkdir -p debian/patches/
-            cp -v $x debian/patches/
-            echo $(basename $x) >> debian/patches/series
+            cp -v "${x}" debian/patches/
+            basename "${x}" >> debian/patches/series
         done
     fi
 
@@ -117,13 +140,13 @@ ${PACKAGE} (${MAJOR}-${CUSTOM_MINOR}) stable; urgency=medium
 
   * Custom build
 
- -- Builder <domain@example.com>  $(date '+%a, %d %b %Y %H:%M:%S %z')
+ -- Builder <domain@example.com>  $(LC_ALL=C date '+%a, %d %b %Y %H:%M:%S %z')
 
 EOF
     cat debian/changelog >>debian/changelog.2
     mv debian/changelog.2 debian/changelog
     statusline "Start build process"
-    DEB_BUILD_OPTIONS="noautodbgsym nocheck nodocs" dpkg-buildpackage -j$(nproc) -d -us -b
+    DEB_BUILD_OPTIONS="noautodbgsym nocheck nodocs" dpkg-buildpackage -j$(nproc) -d -us -uc -b
     cd ..
 done
 

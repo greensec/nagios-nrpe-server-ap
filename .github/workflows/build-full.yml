@@ -1,9 +1,9 @@
 name: build full release
 on:
-  workflow_dispatch:
-  create:
+  push:
     tags:
-      - '*'
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   prepare:
@@ -71,7 +71,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: packages-${{ env.debian_release }}
-          path: ./*.deb
+          # only the renamed server package; the byproduct
+          # nagios-nrpe-plugin deb must not shadow the distro package
+          path: ./nagios-nrpe-server-ap_*.deb
+          if-no-files-found: error
 
   merge-artefacts:
     name: Merge all deb files to single artifact
@@ -124,3 +127,4 @@ jobs:
           version_by_filename: true
           private_key: ${{ secrets.APT_SIGNING_KEY }}
           key_passphrase: ""
+          skip_duplicates: true

@@ -1,0 +1,8 @@
+# local build artifacts
+*.deb
+*.dsc
+*.buildinfo
+*.changes
+*.orig.tar.*
+*.debian.tar.*
+nagios-nrpe-*/

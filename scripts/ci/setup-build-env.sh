@@ -23,7 +23,7 @@ if [[ "${ID}" == "debian" ]]; then
     if [[ "${VERSION_CODENAME}" == "bullseye" ]]; then
         components="main contrib non-free"
     else
-        components="main non-free-firmware"
+        components="main contrib non-free non-free-firmware"
     fi
 
     {

@@ -37,4 +37,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: packages
-          path: ./*.deb
+          # only the renamed server package; the byproduct
+          # nagios-nrpe-plugin deb must not shadow the distro package
+          path: ./nagios-nrpe-server-ap_*.deb
+          if-no-files-found: error
