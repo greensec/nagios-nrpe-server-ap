@@ -14,7 +14,16 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
   non-blocking + close-on-exec so plugin children cannot inherit them,
   `openssl/engine.h` only included for OpenSSL < 3.0, and the
   `configure` C99-vsnprintf probe fixed for GCC >= 14
-  (from Fedora/PR https://github.com/NagiosEnterprises/nrpe/pull/273)
+  (from Fedora/PR https://github.com/NagiosEnterprises/nrpe/pull/273),
+  plus selected fixes from upstream 813ca0d/ad44d84
+  (`debian/patches/92_upstream_813ca0d_fixes`): ACLs cleared before
+  re-parsing `allowed_hosts` (removed hosts kept access after SIGHUP),
+  `/0` netmask evaluation fixed (was UB, silently denied everything),
+  NUL-termination of the plugin-output buffer in `my_system` (stack
+  over-read via `strncat`), `process_metachars` loop condition,
+  free-before-`strdup` on config re-parse, `snprintf` truncation check
+  in `read_config_dir`, `fd_set` leak, `asprintf` return checks, and
+  `ssl_verify_callback` cert-detail logging
 - security hardening (`debian/patches/91_security_*`):
   - `buffer_length` of v3/v4 packets is converted with `ntohl()`
     instead of `ntohs()` (upstream bug: the 16-bit truncation made the
