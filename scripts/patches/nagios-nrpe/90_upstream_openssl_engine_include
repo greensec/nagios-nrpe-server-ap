@@ -1,0 +1,24 @@
+Description: Guard openssl/engine.h include for OpenSSL < 3.0
+ Backport of upstream commits c3ee87f/77e69c3/e2bc359: the ENGINE API
+ was removed in OpenSSL 3.0; only include engine.h for older versions
+ so builds do not fail on SSL stacks without that header.
+Origin: upstream, https://github.com/NagiosEnterprises/nrpe/commit/c3ee87fb
+Forwarded: not-needed
+---
+diff --git a/include/common.h.in b/include/common.h.in
+index fe6740c..1ea7c75 100644
+--- a/include/common.h.in
++++ b/include/common.h.in
+@@ -31,9 +31,11 @@
+ #ifdef HAVE_SSL
+ #include <@SSL_INC_PREFIX@@SSL_HDR@>
+ # ifdef SSL_TYPE_openssl
++#  if OPENSSL_VERSION_NUMBER < 0x30000000
++#   include <@SSL_INC_PREFIX@engine.h>
++#  endif
+ #  include <@SSL_INC_PREFIX@err.h>
+ #  include <@SSL_INC_PREFIX@rand.h>
+-#  include <@SSL_INC_PREFIX@engine.h>
+ #  include <@SSL_INC_PREFIX@evp.h>
+ # endif
+ #endif

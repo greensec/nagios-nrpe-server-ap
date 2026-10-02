@@ -36,9 +36,9 @@ if [[ "${ID}" == "debian" ]]; then
         echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99bullseye-archive
         for list in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do
             [[ -f "${list}" ]] || continue
-            sed -i \
-                -e "s|http://deb.debian.org/debian-security|${security_mirror}|g" \
-                -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
+            sed -i -E \
+                -e "s#https?://(deb|security)\.debian\.org/debian-security#${security_mirror}#g" \
+                -e 's#https?://deb\.debian\.org/debian#http://archive.debian.org/debian#g' \
                 "${list}"
         done
     fi

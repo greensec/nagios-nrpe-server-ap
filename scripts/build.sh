@@ -8,7 +8,7 @@ source "$SCRIPTDIR/common.sh"
 set -e
 
 if [ -z "${BUILD}" ]; then
-    BUILD="2"
+    BUILD="3"
 elif ! [[ "${BUILD}" =~ ^[0-9]+$ ]]; then
     errorline "BUILD must be a number, got: ${BUILD}"
     exit 1
@@ -25,12 +25,16 @@ apt-get update
 # resolve the newest source package published in Debian so every
 # supported distro is built from the same (latest) upstream release
 statusline "Resolving latest ${PACKAGE_NAME} source package in Debian ${SOURCE_SUITE}"
+# the index may carry multiple stanzas during version transitions;
+# take only the first (newest) one
 stanza=$(wget -qO- "${DEBIAN_MIRROR}/dists/${SOURCE_SUITE}/main/source/Sources.xz" \
-    | xz -dc | sed -n "/^Package: ${PACKAGE_NAME}\$/,/^$/p")
+    | xz -dc | sed -n "/^Package: ${PACKAGE_NAME}\$/,/^$/p" | sed '/^$/q')
 BASE_VERSION=$(printf '%s\n' "${stanza}" | sed -n 's/^Version: //p' | head -n1)
 SRC_DIRECTORY=$(printf '%s\n' "${stanza}" | sed -n 's/^Directory: //p' | head -n1)
 mapfile -t SRC_FILES < <(printf '%s\n' "${stanza}" \
     | awk '/^Files:/{f=1;next} /^[^ \t]/{f=0} f && NF==3 {print $3}')
+mapfile -t SRC_SHA256 < <(printf '%s\n' "${stanza}" \
+    | awk '/^Checksums-Sha256:/{f=1;next} /^[^ \t]/{f=0} f && NF==3 {print $1"  "$3}')
 
 if [ -z "${BASE_VERSION}" ] || [ -z "${SRC_DIRECTORY}" ] || [ "${#SRC_FILES[@]}" -eq 0 ]; then
     errorline "Failed to resolve latest ${PACKAGE_NAME} source package"
@@ -80,19 +84,35 @@ for PACKAGE in "${PACKAGES[@]}"; do
     else
         statusline "Fetching ${PACKAGE} ${BASE_VERSION}"
         for f in "${SRC_FILES[@]}"; do
-            wget -q "${DEBIAN_MIRROR}/${SRC_DIRECTORY}/${f}"
+            # wget -O forces overwrite; a plain wget would leave stale
+            # files in place and write name collisions to ${f}.1
+            wget -q -O "${f}" "${DEBIAN_MIRROR}/${SRC_DIRECTORY}/${f}"
         done
+        # verify downloads against the sha256 checksums in the index
+        if [ "${#SRC_SHA256[@]}" -gt 0 ]; then
+            printf '%s\n' "${SRC_SHA256[@]}" | sha256sum -c - || {
+                errorline "Checksum verification failed for downloaded source files"
+                exit 1
+            }
+        fi
         dsc=$(printf '%s\n' "${SRC_FILES[@]}" | grep '\.dsc$' | head -n1)
         if [ -z "${dsc}" ]; then
             errorline "No .dsc file found for ${PACKAGE} ${BASE_VERSION}"
             exit 1
         fi
+        # a previous run may have left an extracted tree behind;
+        # dpkg-source -x refuses to overwrite an existing directory
+        rm -rf "${PACKAGE}-${BASE_MAJOR}"
         dpkg-source -x "${dsc}"
     fi
 
-    # switch to package
+    # switch to package (dpkg-source -x extracts to a deterministic dir name)
     if [ "$CHECK_VERSION" == "1" ]; then
-        cd "${PACKAGE}"-*/
+        if [ -d "${PACKAGE}-${BASE_MAJOR}" ]; then
+            cd "${PACKAGE}-${BASE_MAJOR}"
+        else
+            cd "${PACKAGE}"-*/
+        fi
     else
         cd "${PACKAGE}"
     fi
@@ -100,7 +120,7 @@ for PACKAGE in "${PACKAGES[@]}"; do
     # install build dependencies declared by the extracted debian/control
     statusline "Install build dependencies"
     missing=$(dpkg-checkbuilddeps 2>&1 | sed -n 's/.*[Uu]nmet build dependencies: //p' \
-        | sed -e 's/([^)]*)//g; s/\[[^]]*\]//g; s/ *| *[^ ]*//g' \
+        | sed -e 's/([^)]*)//g; s/\[[^]]*\]//g; s/<[^>]*>//g; s/ *| *[^ ]*//g' \
               -e 's/\bdebhelper-compat\b/debhelper/g' \
         | tr ' ,' '\n' | sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' -e '/^$/d' | sort -u)
     if [ -n "${missing}" ]; then
@@ -143,12 +163,12 @@ for PACKAGE in "${PACKAGES[@]}"; do
     # (e.g. "1ubuntu3" or "1+deb12u1") which break the arithmetic
     # below; use only the leading numeric part.
     MINOR_NUM="${MINOR%%[^0-9]*}"
-    CUSTOM_MINOR=$((${MINOR_NUM:-0}*1000+${BUILD}))
+    CUSTOM_MINOR=$((10#${MINOR_NUM:-0}*1000+${BUILD}))
 
     # append the distro codename so every target gets a unique package
     # version - the APT repo publisher dedups on name+version and
     # reprepro stores one pool file per version
-    DISTRO_CODENAME=$( . /etc/os-release 2>/dev/null && echo "${VERSION_CODENAME}" )
+    DISTRO_CODENAME=$( . /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-}" )
     DISTRO_SUFFIX="~${DISTRO_CODENAME:-local}1"
 
     # dpkg expects the upstream tarball as <pkg>_<upstream-version>.orig.tar.*

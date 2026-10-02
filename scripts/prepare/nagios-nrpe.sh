@@ -44,3 +44,8 @@ for x in debian/${old_pkg}.*; do
     mv "$x" "$new"
     sed -i "s/${old_pkg}/${new_pkg}/g" "$new"
 done
+
+# fix stale doc references (default file and doc dir follow the new name)
+if [ -f debian/NEWS ]; then
+    sed -i "s|/etc/default/${old_pkg}|/etc/default/${new_pkg}|g; s|/usr/share/doc/${old_pkg}|/usr/share/doc/${new_pkg}|g" debian/NEWS
+fi

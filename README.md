@@ -10,8 +10,11 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
 - upstream fixes released after NRPE 4.1.3 backported
   (`debian/patches/90_upstream_*`): IPv4 long option, remote port debug
   output, memory leaks, config reset on reload, complete SSL reads/writes
-  (`ssl_recvall`/`ssl_sendall`), and client sockets marked
-  non-blocking + close-on-exec so plugin children cannot inherit them
+  (`ssl_recvall`/`ssl_sendall`), client sockets marked
+  non-blocking + close-on-exec so plugin children cannot inherit them,
+  `openssl/engine.h` only included for OpenSSL < 3.0, and the
+  `configure` C99-vsnprintf probe fixed for GCC >= 14
+  (from Fedora/PR https://github.com/NagiosEnterprises/nrpe/pull/273)
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary

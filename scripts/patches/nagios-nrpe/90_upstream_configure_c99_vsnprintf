@@ -1,0 +1,55 @@
+Description: Fix C99 vsnprintf configure probe for modern compilers
+ The AC_TRY_RUN test lacked stdio.h/stdlib.h/string.h includes and used
+ a bare main(); with GCC >= 14 implicit declarations are errors, so the
+ probe fails and HAVE_C99_VSNPRINTF is undefined, silently falling back
+ to the bundled snprintf implementation.
+Origin: https://src.fedoraproject.org/rpms/nrpe/raw/rawhide/f/nrpe-configure-c99.patch
+Bug: https://github.com/NagiosEnterprises/nrpe/pull/273
+Forwarded: not-needed
+---
+diff --git a/configure b/configure
+index 215fec35be70c102..8c6c1e6dbca8abad 100755
+--- a/configure
++++ b/configure
+@@ -6934,6 +6934,9 @@ else
+ 
+ #include <sys/types.h>
+ #include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
+ void foo(const char *format, ...) {
+ 	va_list ap;
+ 	int len;
+@@ -6953,7 +6956,7 @@ void foo(const char *format, ...) {
+ 
+ 	exit(0);
+ }
+-main() { foo("hello"); }
++int main() { foo("hello"); }
+ 
+ _ACEOF
+ if ac_fn_c_try_run "$LINENO"; then :
+diff --git a/configure.ac b/configure.ac
+index 1ef4b5af5a55d7fe..6166c7423c97db81 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -203,6 +203,9 @@ AC_CACHE_CHECK([for C99 vsnprintf],ac_cv_HAVE_C99_VSNPRINTF,[
+ AC_TRY_RUN([
+ #include <sys/types.h>
+ #include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
+ void foo(const char *format, ...) {
+ 	va_list ap;
+ 	int len;
+@@ -222,7 +225,7 @@ void foo(const char *format, ...) {
+ 
+ 	exit(0);
+ }
+-main() { foo("hello"); }
++int main() { foo("hello"); }
+ ],
+ ac_cv_HAVE_C99_VSNPRINTF=yes,ac_cv_HAVE_C99_VSNPRINTF=no,ac_cv_HAVE_C99_VSNPRINTF=cross)])
+ if test x"$ac_cv_HAVE_C99_VSNPRINTF" = x"yes"; then
