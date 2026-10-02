@@ -1,0 +1,17 @@
+Description: Fix IPv4 long option
+ Backport of upstream fix: the long option for IPv4-only mode was
+  registered as "4" instead of "ipv4", so --ipv4 was rejected.
+Origin: upstream, https://github.com/NagiosEnterprises/nrpe/commit/8bf4595221ce993aa241877e6dfa743c09d27300
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-02 22:54:52.910698641 +0200
++++ b/src/nrpe.c	2026-10-02 22:54:52.917773392 +0200
+@@ -2756,7 +2756,7 @@
+ 		/* To compatibility between short and long options but not used on AIX */
+ 		{"src", no_argument, 0, 's'},
+ 		{"no-forking", no_argument, 0, 'f'},
+-		{"4", no_argument, 0, '4'},
++		{"ipv4", no_argument, 0, '4'},
+ 		{"ipv6", no_argument, 0, '6'},
+ 		{"daemon", no_argument, 0, 'd'},
+ 		{"no-ssl", no_argument, 0, 'n'},

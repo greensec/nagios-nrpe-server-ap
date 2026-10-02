@@ -1,0 +1,338 @@
+Description: Implement ssl_recvall and ssl_sendall
+ Backport of upstream fix: SSL_read/SSL_write may transfer fewer bytes
+  than requested; adds ssl_recvall/ssl_sendall which loop with select()
+  until the packet is fully transferred or the timeout expires, fixing
+  truncated or missing responses on non-blocking sockets
+  (adjusted to 4.1.3 context).
+Origin: upstream, https://github.com/NagiosEnterprises/nrpe/commit/846a01acd8133bbe64e669baac5104638d7a78a8
+Forwarded: not-needed
+---
+--- a/include/nrpe-ssl.h	2026-10-02 22:54:55.851539222 +0200
++++ b/include/nrpe-ssl.h	2026-10-02 22:54:59.593502113 +0200
+@@ -45,3 +45,6 @@
+ int ssl_load_certificates(void);
+ int ssl_set_ciphers(void);
+ int ssl_verify_callback_common(int preverify_ok, X509_STORE_CTX * ctx, int is_invalid);
++
++int ssl_recvall(SSL *ssl, char *buf, int *len, int timeout);
++int ssl_sendall(SSL *ssl, char *buf, int len);
+--- a/src/check_nrpe.c	2026-10-02 22:54:55.851937596 +0200
++++ b/src/check_nrpe.c	2026-10-02 22:54:59.593817867 +0200
+@@ -1053,16 +1053,11 @@
+ 	bytes_to_send = pkt_size;
+ 
+ #ifdef HAVE_SSL
+-	if (use_ssl == FALSE)
++	if (use_ssl)
++		rc = ssl_sendall(ssl, send_pkt, bytes_to_send);
++	else
+ #endif
+ 		rc = sendall(sd, (char *)send_pkt, &bytes_to_send);
+-#ifdef HAVE_SSL
+-	else {
+-		rc = SSL_write(ssl, send_pkt, bytes_to_send);
+-		if (rc < 0)
+-			rc = -1;
+-	}
+-#endif
+ 
+ 	if (v3_send_packet) {
+ 		free(v3_send_packet);
+@@ -1221,9 +1216,6 @@
+ 
+ int read_packet(int sock, void *ssl_ptr, v2_packet ** v2_pkt, v3_packet ** v3_pkt)
+ {
+-#ifdef HAVE_SSL
+-	int32_t bytes_read = 0;
+-#endif
+ 	v2_packet	packet;
+ 	int32_t pkt_size, common_size, tot_bytes, bytes_to_recv, buffer_size;
+ 	int rc;
+@@ -1323,9 +1315,7 @@
+ 	else {
+ 		SSL *ssl = (SSL *) ssl_ptr;
+ 
+-		while (((rc = SSL_read(ssl, &packet, bytes_to_recv)) <= 0)
+-			   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-		}
++		rc = ssl_recvall(ssl, (char *)&packet, &tot_bytes, socket_timeout);
+ 
+ 		if (rc <= 0 || rc != bytes_to_recv) {
+ 			if (rc < bytes_to_recv) {
+@@ -1365,20 +1355,14 @@
+ 
+ 			/* Read the alignment filler */
+ 			bytes_to_recv = sizeof(int16_t);
+-			while (((rc = SSL_read(ssl, &buffer_size, bytes_to_recv)) <= 0)
+-				   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-			}
+-
++			rc = ssl_recvall(ssl, (char *)&buffer_size, &bytes_to_recv, socket_timeout);
+ 			if (rc <= 0 || bytes_to_recv != sizeof(int16_t))
+ 				return -1;
+ 			tot_bytes += rc;
+ 
+ 			/* Read the buffer size */
+ 			bytes_to_recv = sizeof(buffer_size);
+-			while (((rc = SSL_read(ssl, &buffer_size, bytes_to_recv)) <= 0)
+-				   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-			}
+-
++			rc = ssl_recvall(ssl, (char *)&buffer_size, &bytes_to_recv, socket_timeout);
+ 			if (rc <= 0 || bytes_to_recv != sizeof(buffer_size))
+ 				return -1;
+ 			tot_bytes += rc;
+@@ -1400,19 +1384,9 @@
+ 		}
+ 
+ 		bytes_to_recv = buffer_size;
+-		for (;;) {
+-			while (((rc = SSL_read(ssl, &buff_ptr[bytes_read], bytes_to_recv)) <= 0)
+-				   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-			}
++		rc = ssl_recvall(ssl, buff_ptr, &bytes_to_recv, socket_timeout);
+ 
+-			if (rc <= 0)
+-				break;
+-			bytes_read += rc;
+-			bytes_to_recv -= rc;
+-			tot_bytes += rc;
+-		}
+-
+-		if (rc < 0 || bytes_read != buffer_size) {
++		if (rc <= 0 || rc != buffer_size) {
+ 			if (packet_ver >= NRPE_PACKET_VERSION_3) {
+ 				free(*v3_pkt);
+ 				*v3_pkt = NULL;
+@@ -1420,11 +1394,11 @@
+ 				free(*v2_pkt);
+ 				*v2_pkt = NULL;
+ 			}
+-			if (bytes_read != buffer_size) {
++			if (rc > 0 && rc < buffer_size) {
+ 				if (packet_ver >= NRPE_PACKET_VERSION_3) {
+-					printf("CHECK_NRPE: Receive buffer size - %ld bytes received (%zu expected).\n", (long)bytes_read, sizeof(buffer_size));
++					printf("CHECK_NRPE: Receive buffer size - %ld bytes received (%ld expected).\n", (long)rc, (long)buffer_size);
+ 				} else {
+-					printf("CHECK_NRPE: Receive underflow - only %ld bytes received (%zu expected).\n", (long)bytes_read, sizeof(buffer_size));
++					printf("CHECK_NRPE: Receive underflow - only %ld bytes received (%ld expected).\n", (long)rc, (long)buffer_size);
+ 				}
+ 			}
+ 			return -1;
+--- a/src/nrpe.c	2026-10-02 22:54:55.854569822 +0200
++++ b/src/nrpe.c	2026-10-02 22:54:59.593702855 +0200
+@@ -1822,7 +1822,7 @@
+ 		sendall(sock, send_pkt, &bytes_to_send);
+ #ifdef HAVE_SSL
+ 	else
+-		SSL_write(ssl, send_pkt, bytes_to_send);
++		ssl_sendall(ssl, send_pkt, bytes_to_send);
+ #endif
+ 
+ #ifdef HAVE_SSL
+@@ -2050,28 +2050,8 @@
+ #ifdef HAVE_SSL
+ 	else {
+ 		SSL      *ssl = (SSL *) ssl_ptr;
+-		int       sockfd, retval;
+-		fd_set    rfds;
+-		struct timeval timeout;
+ 
+-		sockfd = SSL_get_fd(ssl);
+-
+-		FD_ZERO(&rfds);
+-		FD_SET(sockfd, &rfds);
+-
+-		timeout.tv_sec = connection_timeout;
+-		timeout.tv_usec = 0;
+-
+-		do {
+-			retval = select(sockfd + 1, &rfds, NULL, NULL, &timeout);
+-
+-			if (retval > 0) {
+-				rc = SSL_read(ssl, v2_pkt, bytes_to_recv);
+-			} else {
+-				logit(LOG_ERR, "Error (!log_opts): Could not complete SSL_read with %s: timeout %d seconds", remote_host, connection_timeout);
+-				return -1;
+-			}
+-		} while (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ);
++		rc = ssl_recvall(ssl, (char *)v2_pkt, &tot_bytes, socket_timeout);
+ 
+ 		if (rc <= 0 || rc != bytes_to_recv)
+ 			return -1;
+@@ -2096,9 +2076,7 @@
+ 
+ 			/* Read the alignment filler */
+ 			bytes_to_recv = sizeof(int16_t);
+-			while (((rc = SSL_read(ssl, &buffer_size, bytes_to_recv)) <= 0)
+-				   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-			}
++			rc = ssl_recvall(ssl, (char *)&buffer_size, &bytes_to_recv, socket_timeout);
+ 
+ 			if (rc <= 0 || bytes_to_recv != sizeof(int16_t))
+ 				return -1;
+@@ -2106,9 +2084,7 @@
+ 
+ 			/* Read the buffer size */
+ 			bytes_to_recv = sizeof(buffer_size);
+-			while (((rc = SSL_read(ssl, &buffer_size, bytes_to_recv)) <= 0)
+-				   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-			}
++			rc = ssl_recvall(ssl, (char *)&buffer_size, &bytes_to_recv, socket_timeout);
+ 
+ 			if (rc <= 0 || bytes_to_recv != sizeof(buffer_size))
+ 				return -1;
+@@ -2131,9 +2107,7 @@
+ 		}
+ 
+ 		bytes_to_recv = buffer_size;
+-		while (((rc = SSL_read(ssl, buff_ptr, bytes_to_recv)) <= 0)
+-			   && (SSL_get_error(ssl, rc) == SSL_ERROR_WANT_READ)) {
+-		}
++		rc = ssl_recvall(ssl, buff_ptr, &bytes_to_recv, socket_timeout);
+ 
+ 		if (rc <= 0 || rc != buffer_size) {
+ 			if (packet_ver == NRPE_PACKET_VERSION_3) {
+--- a/src/nrpe-ssl.c	2026-10-02 22:54:55.851986796 +0200
++++ b/src/nrpe-ssl.c	2026-10-02 22:54:59.571261731 +0200
+@@ -285,3 +285,140 @@
+ 
+ 	return preverify_ok;
+ }
++
++
++int ssl_recvall(SSL *ssl, char *buf, int *len, int timeout)
++{
++	time_t start_time;
++	time_t current_time;
++	int total = 0;
++	int bytesleft = *len;
++	int n = 0;
++	int fd = SSL_get_fd(ssl);
++
++	time(&start_time);
++
++	while (total < *len) {
++		int ern;
++		int ssl_err;
++		unsigned long x;
++
++		n = SSL_read(ssl, buf + total, bytesleft);
++		if (n > 0) {
++			// Success. Adjust and keep going
++			total += n;
++			bytesleft -= n;
++			continue;
++		}
++
++		ern = errno;
++		ssl_err = SSL_get_error(ssl, n);
++
++		if (ssl_err == SSL_ERROR_WANT_READ) {
++			int rc;
++			fd_set rfds;
++			struct timeval tv;
++
++			FD_ZERO(&rfds);
++			FD_SET(fd, &rfds);
++
++			tv.tv_sec = 2;
++			tv.tv_usec = 0;
++
++			rc = select(fd + 1, &rfds, NULL, NULL, &tv);
++			if (rc == -1) {
++				logit(LOG_ERR, "ERROR: ssl_recvall() select failed (errno=%i)", errno);
++				break;
++			}
++
++			if (rc == 0) {
++				// Timed out
++				time(&current_time);
++				if (current_time - start_time > timeout) {
++					logit(LOG_ERR, "ERROR: ssl_recvall() timed out");
++					break;
++				}
++			}
++
++			// we've either timed out or our fd should be ready for more data
++			continue;
++		}
++
++		logit(LOG_ERR, "ERROR: Error reading data! (rc=%i, errno=%i, ssl=%i)", n, ern, ssl_err);
++		while ((x = ERR_get_error()) != 0) {
++			logit(LOG_ERR, "     : %s", ERR_reason_error_string(x));
++		}
++
++		return -1;
++	}
++
++	/* return number of bytes actually received here */
++	*len = total;
++
++	/* return <=0 on failure, bytes received on success */
++	return (n <= 0) ? n : total;
++}
++
++int ssl_sendall(SSL *ssl, char *buf, int len)
++{
++	int total = 0;
++	int bytesleft = len;
++	int n = 0;
++	int timeouts = 0;
++	int fd = SSL_get_fd(ssl);
++
++	while (total < len) {
++		int ern;
++		int ssl_err;
++		unsigned long x;
++
++		n = SSL_write(ssl, buf + total, bytesleft);
++		if (n > 0) {
++			// Success. Adjust and keep going
++			total += n;
++			bytesleft -= n;
++			continue;
++		}
++
++		ern = errno;
++		ssl_err = SSL_get_error(ssl, n);
++
++		if (ssl_err == SSL_ERROR_WANT_WRITE) {
++			int rc;
++			fd_set wfds;
++			struct timeval tv;
++
++			FD_ZERO(&wfds);
++			FD_SET(fd, &wfds);
++
++			tv.tv_sec = 2;
++			tv.tv_usec = 0;
++
++			rc = select(fd + 1, NULL, &wfds, NULL, &tv);
++			if (rc == -1) {
++				logit(LOG_ERR, "ERROR: ssl_sendall() select failed (errno=%i)", errno);
++				break;
++			}
++
++			if (rc == 0) {
++				// Timed out
++				if (++timeouts > 5) {
++					logit(LOG_ERR, "ERROR: ssl_sendall() timed out");
++					break;
++				}
++			}
++
++			// we've either timed out or our fd should be ready for more data
++			continue;
++		}
++
++		logit(LOG_ERR, "ERROR: Error sending data! (rc=%i, errno=%i, ssl=%i)", n, ern, ssl_err);
++		while ((x = ERR_get_error()) != 0) {
++			logit(LOG_ERR, "     : %s", ERR_reason_error_string(x));
++		}
++
++		return -1;
++	}
++
++	return (total == len) ? 0 : -1;	/* return -1 on failure, 0 on success */
++}

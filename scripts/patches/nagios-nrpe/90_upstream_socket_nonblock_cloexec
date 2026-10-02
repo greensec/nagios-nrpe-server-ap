@@ -1,0 +1,38 @@
+Description: Make client socket non-blocking and close on exec
+ Backport of upstream fix: sets FD_CLOEXEC on the accepted client
+  socket so plugin child processes no longer inherit it (which could keep
+  the connection open), plus O_NONBLOCK handled by the
+  recvall/ssl_recvall loops.
+Origin: upstream, https://github.com/NagiosEnterprises/nrpe/commit/bf4afc8bc6f0c1c991797b893ad424d374db8584
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-02 22:54:59.593702855 +0200
++++ b/src/nrpe.c	2026-10-02 22:54:59.604278211 +0200
+@@ -1304,6 +1304,9 @@
+ 				break;			/* else handle the error later */
+ 			}
+ 
++			/* ensure socket is non-blocking & close on exec */
++			fcntl(new_sd, F_SETFD, fcntl(new_sd, F_GETFD) | FD_CLOEXEC);
++			fcntl(new_sd, F_SETFL, fcntl(new_sd, F_GETFL) | O_NONBLOCK);
+ 
+ 			rc = wait_conn_fork(new_sd);
+ 			if (rc == TRUE)
+@@ -1997,6 +2000,8 @@
+ 			logit(LOG_ERR, "Error: (use_ssl == false): Request packet version was invalid!");
+ 			return -1;
+ 		}
++		if (debug)
++			logit(LOG_DEBUG, "Received v%i packet", packet_ver);
+ 
+ 		if (packet_ver == NRPE_PACKET_VERSION_2) {
+ 			buffer_size = sizeof(v2_packet) - common_size;
+@@ -2061,6 +2066,8 @@
+ 			logit(LOG_ERR, "Error: (use_ssl == true): Request packet version was invalid!");
+ 			return -1;
+ 		}
++		if (debug)
++			logit(LOG_DEBUG, "Received v%i packet", packet_ver);
+ 
+ 		if (packet_ver == NRPE_PACKET_VERSION_2) {
+ 			buffer_size = sizeof(v2_packet) - common_size;

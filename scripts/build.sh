@@ -1,5 +1,5 @@
 #!/bin/bash
-BUILD="$1"
+BUILD="${1:-${BUILD:-}}"
 WORKDIR="${PWD}"
 SCRIPT=$(readlink -f "$0")
 SCRIPTDIR=$(dirname "${SCRIPT}")
@@ -8,7 +8,7 @@ source "$SCRIPTDIR/common.sh"
 set -e
 
 if [ -z "${BUILD}" ]; then
-    BUILD="1"
+    BUILD="2"
 elif ! [[ "${BUILD}" =~ ^[0-9]+$ ]]; then
     errorline "BUILD must be a number, got: ${BUILD}"
     exit 1

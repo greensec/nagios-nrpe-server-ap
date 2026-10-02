@@ -7,6 +7,11 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
 - `dont_blame_nrpe=1` in the shipped default `nrpe.cfg`
 - `include_dir=/etc/nagios/nrpe.d/` moved before the local config include
   (via `debian/patches/99_update_default_cfg`)
+- upstream fixes released after NRPE 4.1.3 backported
+  (`debian/patches/90_upstream_*`): IPv4 long option, remote port debug
+  output, memory leaks, config reset on reload, complete SSL reads/writes
+  (`ssl_recvall`/`ssl_sendall`), and client sockets marked
+  non-blocking + close-on-exec so plugin children cannot inherit them
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary
