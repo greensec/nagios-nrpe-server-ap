@@ -62,4 +62,6 @@ apt-get update
 apt-get -y install --no-install-recommends \
     ca-certificates \
     dpkg-dev \
-    build-essential
+    build-essential \
+    wget \
+    xz-utils

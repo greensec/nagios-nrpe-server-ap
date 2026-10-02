@@ -15,17 +15,25 @@ elif ! [[ "${BUILD}" =~ ^[0-9]+$ ]]; then
 fi
 
 PACKAGE_NAME="nagios-nrpe"
+DEBIAN_MIRROR="${DEBIAN_MIRROR:-https://deb.debian.org/debian}"
+SOURCE_SUITE="${SOURCE_SUITE:-unstable}"
 
 statusline "Run apt-get update to download source updates"
 cd "${WORKDIR}"
 apt-get update
 
-apt-get -y build-dep nagios-nrpe
-apt-get -y install nagios-nrpe-server
+# resolve the newest source package published in Debian so every
+# supported distro is built from the same (latest) upstream release
+statusline "Resolving latest ${PACKAGE_NAME} source package in Debian ${SOURCE_SUITE}"
+stanza=$(wget -qO- "${DEBIAN_MIRROR}/dists/${SOURCE_SUITE}/main/source/Sources.xz" \
+    | xz -dc | sed -n "/^Package: ${PACKAGE_NAME}\$/,/^$/p")
+BASE_VERSION=$(printf '%s\n' "${stanza}" | sed -n 's/^Version: //p' | head -n1)
+SRC_DIRECTORY=$(printf '%s\n' "${stanza}" | sed -n 's/^Directory: //p' | head -n1)
+mapfile -t SRC_FILES < <(printf '%s\n' "${stanza}" \
+    | awk '/^Files:/{f=1;next} /^[^ \t]/{f=0} f && NF==3 {print $3}')
 
-BASE_VERSION=$(dpkg-query -f '${Version}' -W "nagios-nrpe-server")
-if [ -z "${BASE_VERSION}" ]; then
-    errorline "Failed to fetch ${PACKAGE_NAME} base verison!"
+if [ -z "${BASE_VERSION}" ] || [ -z "${SRC_DIRECTORY}" ] || [ "${#SRC_FILES[@]}" -eq 0 ]; then
+    errorline "Failed to resolve latest ${PACKAGE_NAME} source package"
     exit 1
 fi
 
@@ -70,8 +78,16 @@ for PACKAGE in "${PACKAGES[@]}"; do
             tar xf "${tarball}" -C "${srcdir}"
         done
     else
-        statusline "Fetching ${PACKAGE}"
-        apt source -y ${PACKAGE}
+        statusline "Fetching ${PACKAGE} ${BASE_VERSION}"
+        for f in "${SRC_FILES[@]}"; do
+            wget -q "${DEBIAN_MIRROR}/${SRC_DIRECTORY}/${f}"
+        done
+        dsc=$(printf '%s\n' "${SRC_FILES[@]}" | grep '\.dsc$' | head -n1)
+        if [ -z "${dsc}" ]; then
+            errorline "No .dsc file found for ${PACKAGE} ${BASE_VERSION}"
+            exit 1
+        fi
+        dpkg-source -x "${dsc}"
     fi
 
     # switch to package
@@ -79,6 +95,19 @@ for PACKAGE in "${PACKAGES[@]}"; do
         cd "${PACKAGE}"-*/
     else
         cd "${PACKAGE}"
+    fi
+
+    # install build dependencies declared by the extracted debian/control
+    statusline "Install build dependencies"
+    missing=$(dpkg-checkbuilddeps 2>&1 | sed -n 's/.*Unmet build dependencies: //p' \
+        | tr ',' '\n' \
+        | sed -e 's/([^)]*)//g; s/\[[^]]*\]//g; s/|.*//' \
+              -e 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+              -e 's/^debhelper-compat$/debhelper/' | sort -u)
+    if [ -n "${missing}" ]; then
+        apt-get -y install --no-install-recommends ${missing}
+        # fail loudly if some dependency still cannot be satisfied
+        dpkg-checkbuilddeps
     fi
 
     if [ -e "$SCRIPTDIR/prepare/${PACKAGE}.sh" ]; then

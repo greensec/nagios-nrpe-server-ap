@@ -125,8 +125,9 @@ desired flavor:
 ./scripts/build.sh        # optional first arg: build number (default: 1)
 ```
 
-The script fetches the distribution's `nagios-nrpe` source package, applies
-the changes from `scripts/prepare/` and `scripts/patches/`, bumps the version
-to `<upstream>-<revision>*1000+<build>` and produces the `.deb` files in the
-working directory. Supported flavors are listed in
-`.github/supported-releases.txt`.
+The script fetches the newest `nagios-nrpe` source package published in
+Debian unstable (currently 4.1.3) so every supported distro is built from the
+same latest upstream release, applies the changes from `scripts/prepare/` and
+`scripts/patches/`, bumps the version to `<upstream>-<revision>*1000+<build>`
+and produces the `.deb` files in the working directory. Supported flavors are
+listed in `.github/supported-releases.txt`.
