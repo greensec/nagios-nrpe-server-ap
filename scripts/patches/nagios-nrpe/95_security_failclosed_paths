@@ -1,0 +1,123 @@
+Description: Close several fail-open / unchecked-allocation paths
+ - process_metachars() returned strdup(input) without a NULL check;
+   callers assigned the result to nasty_metachars, and a NULL there
+   silently DISABLED metachar filtering (contains_nasty_metachars
+   returns FALSE for NULL). The config parser now treats an
+   allocation failure as an error, and both initialization-time
+   strdup()s abort instead of running unfiltered.
+ - The fd_set for the accept loop's select() was re-calloc()d without
+   a NULL check - an OOM would NULL-deref in FD_SET; now fatal.
+ - conn_check_peer() had no default case in its address-family
+   switch: a peer of an unexpected family (e.g. AF_UNIX under an
+   inetd super-server) skipped allowed_hosts entirely. Such peers
+   are now refused (fail closed).
+ - conn_check_peer() returned after close() on getpeername() failure,
+   letting the caller run handle_connection() on a dead descriptor
+   and double-close it. It now exits like every other reject path.
+ - nptr/nptr6 are now initialized to NULL (defensive; silences
+   -Wanalyzer-use-of-uninitialized-value).
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 01:37:49.016835367 +0200
++++ b/src/nrpe.c	2026-10-03 01:37:41.971942459 +0200
+@@ -144,6 +144,10 @@
+ 	log_file = NULL;
+ 	free(nasty_metachars);
+ 	nasty_metachars = strdup(NASTY_METACHARS);
++	if (nasty_metachars == NULL) {
++		logit(LOG_ERR, "Unable to allocate nasty_metachars - bailing out...");
++		exit(STATE_CRITICAL);
++	}
+ 
+ 	// These shouldn't change on restart. Maybe warn or abort if detected?
+ //	nrpe_group = NULL;
+@@ -217,8 +221,13 @@
+ 		return STATE_CRITICAL;
+ 	}
+ 
+-	if (!nasty_metachars)
++	if (!nasty_metachars) {
+ 		nasty_metachars = strdup(NASTY_METACHARS);
++		if (nasty_metachars == NULL) {
++			logit(LOG_ERR, "Unable to allocate nasty_metachars - bailing out...");
++			exit(STATE_CRITICAL);
++		}
++	}
+ 
+ 	/* initialize macros */
+ 	for (x = 0; x < MAX_COMMAND_ARGUMENTS; x++)
+@@ -631,6 +640,8 @@
+ 	char* copy = strdup(input);
+ 	int i,j;
+ 	int length = strlen(input);
++	if (copy == NULL)
++		return NULL;
+ 	for (i = 0, j = 0; j < length; i++, j++) {
+ 		if (copy[j] != '\\') {
+ 			copy[i] = copy[j];
+@@ -973,8 +984,15 @@
+ 			}
+ 
+ 		else if (!strcmp(varname, "nasty_metachars")) {
++			char *new_metachars = process_metachars(varvalue);
++			if (new_metachars == NULL) {
++				logit(LOG_ERR,
++					   "Unable to process nasty_metachars in config file '%s' - Line %d\n",
++					   filename, line);
++				return ERROR;
++			}
+ 			free(nasty_metachars);
+-			nasty_metachars = process_metachars(varvalue);
++			nasty_metachars = new_metachars;
+ 		}
+ 
+ 		else if (!strcmp(varname, "log_file")) {
+@@ -1313,6 +1331,10 @@
+ 		if (need_fdset > count_fdset) {
+ 			free(fdset);
+ 			fdset = (fd_set *) calloc(need_fdset, sizeof(fd_mask));
++			if (fdset == NULL) {
++				logit(LOG_ERR, "Unable to allocate fd_set for select - bailing out...");
++				exit(STATE_CRITICAL);
++			}
+ 			count_fdset = need_fdset;
+ 		} else {
+ 			memset(fdset, 0, count_fdset * sizeof(fd_mask));
+@@ -1528,8 +1550,8 @@
+ #else
+ 	struct sockaddr			addr;
+ #endif
+-	struct sockaddr_in      *nptr;
+-	struct sockaddr_in6     *nptr6;
++	struct sockaddr_in      *nptr = NULL;
++	struct sockaddr_in6     *nptr6 = NULL;
+ 
+ 	char      ipstr[INET6_ADDRSTRLEN];
+ 	socklen_t addrlen;
+@@ -1545,9 +1567,10 @@
+ 		logit(LOG_ERR, "Error: Network server getpeername() failure (%d: %s)",
+ 			   errno, strerror(errno));
+ 
+-		/* close socket prior to exiting */
++		/* close socket prior to exiting - must not run handle_connection()
++		   on a closed descriptor, it would double-close below */
+ 		close(sock);
+-		return;
++		exit(STATE_OK);
+ 	}
+ 
+ #ifdef HAVE_STRUCT_SOCKADDR_STORAGE
+@@ -1638,6 +1661,12 @@
+ 					logit(LOG_DEBUG, "Host address is in allowed_hosts");
+ 			}
+ 			break;
++
++		default:
++			/* unsupported address family - deny (fail closed) */
++			logit(LOG_ERR, "Connection from unsupported address family rejected.");
++			close(sock);
++			exit(STATE_OK);
+ 		}
+ 	}
+ 

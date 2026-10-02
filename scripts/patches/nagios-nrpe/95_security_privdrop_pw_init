@@ -1,0 +1,19 @@
+Description: Initialize pw in drop_privileges
+ The numeric-UID path in drop_privileges() never assigned 'pw', and
+ the initgroups resolver added in 94_security_privdrop_numeric_user
+ reads it - an uninitialized pointer. Initialize it to NULL so the
+ getpwuid() fallback is used as intended.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-03 01:37:49.016835367 +0200
++++ b/src/nrpe.c	2026-10-03 01:37:41.971942459 +0200
+@@ -2435,7 +2464,7 @@
+ 	uid_t     uid = (uid_t)-1;
+ 	gid_t     gid = (gid_t)-1;
+ 	struct group *grp;
+-	struct passwd *pw;
++	struct passwd *pw = NULL;
+ 
+ 	if (use_inetd == TRUE)
+ 		return OK;

@@ -60,6 +60,12 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
   entry for `initgroups()` so numeric `nrpe_user` values and a missing
   `nrpe_group` work correctly under the fail-closed policy; and
   `allowed_hosts` is now enforced in inetd mode as well
+- static-analyzer pass (`debian/patches/95_security_*`): allocation
+  failures no longer silently disable the `nasty_metachars` filter,
+  the accept loop's `fd_set` is checked, `conn_check_peer()` refuses
+  connections of unknown address families instead of skipping the
+  ACL, and its error paths no longer leave a closed descriptor for
+  the caller to double-close
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary
