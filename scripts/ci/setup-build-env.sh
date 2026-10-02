@@ -20,16 +20,33 @@ if [[ -z "${ID}" || -z "${VERSION_CODENAME}" ]]; then
 fi
 
 if [[ "${ID}" == "debian" ]]; then
+    components="main contrib non-free non-free-firmware"
+    mirror="http://deb.debian.org/debian"
+    security_mirror="http://deb.debian.org/debian-security"
+
     if [[ "${VERSION_CODENAME}" == "bullseye" ]]; then
+        # bullseye is EOL: the bullseye-security pool was purged from the CDN
+        # while its index remains (404s on install), and archive.debian.org
+        # has no bullseye-security tree. Use the last good snapshot for
+        # security and archive.debian.org for the frozen release.
         components="main contrib non-free"
-    else
-        components="main contrib non-free non-free-firmware"
+        mirror="http://archive.debian.org/debian"
+        security_mirror="http://snapshot.debian.org/archive/debian-security/20260901T000000Z"
+        # the archived Release files carry an expired Valid-Until
+        echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99bullseye-archive
+        for list in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do
+            [[ -f "${list}" ]] || continue
+            sed -i \
+                -e "s|http://deb.debian.org/debian-security|${security_mirror}|g" \
+                -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
+                "${list}"
+        done
     fi
 
     {
-        echo "deb-src http://deb.debian.org/debian ${VERSION_CODENAME} ${components}"
-        echo "deb-src http://deb.debian.org/debian-security ${VERSION_CODENAME}-security ${components}"
-        echo "deb-src http://deb.debian.org/debian ${VERSION_CODENAME}-updates ${components}"
+        echo "deb-src ${mirror} ${VERSION_CODENAME} ${components}"
+        [[ -z "${security_mirror}" ]] || echo "deb-src ${security_mirror} ${VERSION_CODENAME}-security ${components}"
+        echo "deb-src ${mirror} ${VERSION_CODENAME}-updates ${components}"
     } > /etc/apt/sources.list.d/debian-src.list
 fi
 
