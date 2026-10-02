@@ -99,11 +99,10 @@ for PACKAGE in "${PACKAGES[@]}"; do
 
     # install build dependencies declared by the extracted debian/control
     statusline "Install build dependencies"
-    missing=$(dpkg-checkbuilddeps 2>&1 | sed -n 's/.*Unmet build dependencies: //p' \
-        | tr ',' '\n' \
-        | sed -e 's/([^)]*)//g; s/\[[^]]*\]//g; s/|.*//' \
-              -e 's/^[[:space:]]*//; s/[[:space:]]*$//' \
-              -e 's/^debhelper-compat$/debhelper/' | sort -u)
+    missing=$(dpkg-checkbuilddeps 2>&1 | sed -n 's/.*[Uu]nmet build dependencies: //p' \
+        | sed -e 's/([^)]*)//g; s/\[[^]]*\]//g; s/ *| *[^ ]*//g' \
+              -e 's/\bdebhelper-compat\b/debhelper/g' \
+        | tr ' ,' '\n' | sed -e 's/^[[:space:]]*//; s/[[:space:]]*$//' -e '/^$/d' | sort -u)
     if [ -n "${missing}" ]; then
         apt-get -y install --no-install-recommends ${missing}
         # fail loudly if some dependency still cannot be satisfied
