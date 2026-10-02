@@ -1,0 +1,95 @@
+Description: Fail closed when dropping privileges
+ drop_privileges() only logged a warning and continued when the
+ configured nrpe_user/nrpe_group could not be resolved or when
+ setgid()/setuid()/SETEUID() failed, leaving the daemon (or plugin
+ children) running with more privileges than configured. Each failure
+ now returns ERROR; the daemon aborts startup and plugin children exit
+ before popen() instead of executing commands as root.
+ initgroups() EPERM remains non-fatal: it is the expected result when
+ the daemon is started as an unprivileged user (e.g. systemd User=).
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-02 22:54:59.604278211 +0200
++++ b/src/nrpe.c	2026-10-03 00:08:47.103927092 +0200
+@@ -574,7 +574,10 @@
+ 	clean_environ(keep_env_vars, nrpe_user);
+ 
+ 	/* drop and then check privileges */
+-	drop_privileges(nrpe_user, nrpe_group, 0);
++	if (drop_privileges(nrpe_user, nrpe_group, 0) == ERROR) {
++		logit(LOG_ERR, "Error: failed to drop privileges - exiting");
++		exit(STATE_CRITICAL);
++	}
+ 	check_privileges();
+ }
+ 
+@@ -2201,7 +2204,9 @@
+ 		if (SETEUID(0) == -1 && debug)
+ 			logit(LOG_WARNING, "WARNING: my_system() seteuid(0): %s", strerror(errno));
+ 
+-		drop_privileges(nrpe_user, nrpe_group, 1);	/* drop privileges */
++		/* drop privileges */
++		if (drop_privileges(nrpe_user, nrpe_group, 1) == ERROR)
++			exit(STATE_CRITICAL);
+ 		close(fd[0]);			/* close pipe for reading */
+ 		setpgid(0, 0);			/* become process group leader */
+ 
+@@ -2356,8 +2361,10 @@
+ 			grp = (struct group *)getgrnam(group);
+ 			if (grp != NULL)
+ 				gid = (gid_t) (grp->gr_gid);
+-			else
+-				logit(LOG_ERR, "Warning: Could not get group entry for '%s'", group);
++			else {
++				logit(LOG_ERR, "Error: Could not get group entry for '%s'", group);
++				return ERROR;
++			}
+ 			endgrent();
+ 
+ 		} else
+@@ -2366,8 +2373,10 @@
+ 
+ 		/* set effective group ID if other than current EGID */
+ 		if (gid != getegid()) {
+-			if (setgid(gid) == -1)
+-				logit(LOG_ERR, "Warning: Could not set effective GID=%d", (int)gid);
++			if (setgid(gid) == -1) {
++				logit(LOG_ERR, "Error: Could not set effective GID=%d", (int)gid);
++				return ERROR;
++			}
+ 		}
+ 	}
+ 
+@@ -2380,8 +2389,10 @@
+ 			pw = (struct passwd *)getpwnam(user);
+ 			if (pw != NULL)
+ 				uid = (uid_t) (pw->pw_uid);
+-			else
+-				logit(LOG_ERR, "Warning: Could not get passwd entry for '%s'", user);
++			else {
++				logit(LOG_ERR, "Error: Could not get passwd entry for '%s'", user);
++				return ERROR;
++			}
+ 			endpwent();
+ 
+ 		} else
+@@ -2403,10 +2414,14 @@
+ #endif
+ 
+ 			if (full_drop) {
+-				if (setuid(uid) == -1)
+-					logit(LOG_ERR, "Warning: Could not set UID=%d", (int)uid);
+-			} else if (SETEUID(uid) == -1)
+-				logit(LOG_ERR, "Warning: Could not set effective UID=%d", (int)uid);
++				if (setuid(uid) == -1) {
++					logit(LOG_ERR, "Error: Could not set UID=%d", (int)uid);
++					return ERROR;
++				}
++			} else if (SETEUID(uid) == -1) {
++				logit(LOG_ERR, "Error: Could not set effective UID=%d", (int)uid);
++				return ERROR;
++			}
+ 		}
+ 	}
+ 

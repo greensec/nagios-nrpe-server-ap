@@ -1,0 +1,22 @@
+Description: Extend the default nasty-metacharacter blacklist
+ Adds '$', '"', '#' and '~' to NASTY_METACHARS. The previous default
+ allowed bare '$' (so '$IFS' and friends survived filtering), '"'
+ (quote injection inside command definitions) and '#'/'~' (shell
+ comment and tilde expansion). Substitution syntax was already covered
+ by '{' '}' and the separate '$(' check, which are unchanged.
+ The blacklist can still be overridden with the nasty_metachars
+ directive, which now defaults to the extended set.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-02 22:54:59.604278211 +0200
++++ b/src/nrpe.c	2026-10-03 00:07:45.628584284 +0200
+@@ -64,7 +64,7 @@
+ 
+ #define DEFAULT_COMMAND_TIMEOUT			60	/* default timeout for execution of plugins */
+ #define MAXFD							64
+-#define NASTY_METACHARS					"|`&><'\\[]{};\r\n"
++#define NASTY_METACHARS					"|`&><'\\[]{};\r\n$\"#~"
+ #define MAX_LISTEN_SOCKS				16
+ #define DEFAULT_LISTEN_QUEUE_SIZE		5
+ #define DEFAULT_SSL_SHUTDOWN_TIMEOUT	15

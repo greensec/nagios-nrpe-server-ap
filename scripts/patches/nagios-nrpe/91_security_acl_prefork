@@ -1,0 +1,105 @@
+Description: Reject disallowed peers before forking
+ wait_conn_fork() double-forks before the ACL is checked in the
+ grandchild, so every TCP connection - including ones from hosts that
+ can never pass allowed_hosts - costs two forks. This made the daemon
+ trivially exhaustible by unauthenticated connection floods.
+ A new acl_prefork_allow() helper in acl.c performs a cheap in-parent
+ check: it denies only peers that cannot match (no matching IP ACL
+ entry AND no DNS ACL entries that could still resolve to them). The
+ authoritative conn_check_peer() check in the child is unchanged, and
+ libwrap is still consulted there.
+ With DNS ACL entries configured the pre-fork check always defers to
+ the child (DNS lookups must not block the accept loop); in that case
+ flood protection relies on connection timeouts as before.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c	2026-10-02 22:54:59.604278211 +0200
++++ b/src/nrpe.c	2026-10-03 00:09:26.892599603 +0200
+@@ -1308,6 +1308,22 @@
+ 			fcntl(new_sd, F_SETFD, fcntl(new_sd, F_GETFD) | FD_CLOEXEC);
+ 			fcntl(new_sd, F_SETFL, fcntl(new_sd, F_GETFL) | O_NONBLOCK);
+ 
++			/* cheap ACL check before paying for two forks: peers that
++			   cannot match the IP ACL (and no DNS ACL entries exist that
++			   could still match) are rejected without forking. The child
++			   still runs the full conn_check_peer() afterwards. */
++			if (allowed_hosts) {
++				struct sockaddr_storage peer;
++				socklen_t peerlen = sizeof(peer);
++				if (getpeername(new_sd, (struct sockaddr *)&peer, &peerlen) == 0
++						&& acl_prefork_allow((struct sockaddr *)&peer) == 0) {
++					if (debug == TRUE)
++						logit(LOG_INFO, "Connection from unallowed host rejected before fork.");
++					close(new_sd);
++					continue;
++				}
++			}
++
+ 			rc = wait_conn_fork(new_sd);
+ 			if (rc == TRUE)
+ 				continue;		/* Continue if this is the parent returning */
+--- a/src/acl.c	2026-10-02 22:54:59.600782536 +0200
++++ b/src/acl.c	2026-10-03 00:09:26.892198469 +0200
+@@ -494,6 +494,51 @@
+  * 0 - on failure
+  */
+ 
++/*
++ * Cheap pre-fork ACL check. Returns 1 if the peer might be allowed
++ * (matches the IP ACL, or DNS ACL entries exist that only the forked
++ * child can resolve) and 0 only when the peer is definitely denied.
++ * Callers must still run conn_check_peer()/is_an_allowed_host() in the
++ * child for the authoritative check.
++ */
++int acl_prefork_allow(struct sockaddr *sa)
++{
++	struct ip_acl		*ip_acl_curr = ip_acl_head;
++	int				nbytes;
++	int				x;
++
++	if (dns_acl_head != NULL)
++		return 1;	/* DNS entries can still match - let the child decide */
++
++	while (ip_acl_curr != NULL) {
++		if (ip_acl_curr->family == sa->sa_family) {
++			switch (sa->sa_family) {
++			case AF_INET:
++				if ((((struct sockaddr_in *)sa)->sin_addr.s_addr &
++						ip_acl_curr->mask.s_addr) ==
++						ip_acl_curr->addr.s_addr)
++					return 1;
++				break;
++			case AF_INET6:
++				nbytes = sizeof(ip_acl_curr->mask6.s6_addr) /
++						sizeof(ip_acl_curr->mask6.s6_addr[0]);
++				for (x = 0; x < nbytes; x++) {
++					if ((((struct sockaddr_in6 *)sa)->sin6_addr.s6_addr[x] &
++							ip_acl_curr->mask6.s6_addr[x]) !=
++							ip_acl_curr->addr6.s6_addr[x])
++						break;
++				}
++				if (x == nbytes)
++					return 1;
++				break;
++			}
++		}
++		ip_acl_curr = ip_acl_curr->next;
++	}
++
++	return 0;
++}
++
+ int is_an_allowed_host(int family, void *host)
+ {
+ 	struct ip_acl		*ip_acl_curr = ip_acl_head;
+--- a/include/acl.h	2026-10-02 22:54:59.600073039 +0200
++++ b/include/acl.h	2026-10-03 00:09:26.892289880 +0200
+@@ -67,6 +67,7 @@
+ int add_domain_to_acl(char *domain);
+ //int is_an_allowed_host(struct in_addr);
+ int is_an_allowed_host(int, void *);
++int acl_prefork_allow(struct sockaddr *);
+ unsigned int prefix_from_mask(struct in_addr mask);
+ void show_acl_lists(void);
+ 

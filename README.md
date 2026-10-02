@@ -15,11 +15,38 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
   `openssl/engine.h` only included for OpenSSL < 3.0, and the
   `configure` C99-vsnprintf probe fixed for GCC >= 14
   (from Fedora/PR https://github.com/NagiosEnterprises/nrpe/pull/273)
+- security hardening (`debian/patches/91_security_*`):
+  - `buffer_length` of v3/v4 packets is converted with `ntohl()`
+    instead of `ntohs()` (upstream bug: the 16-bit truncation made the
+    forced string terminator land at `buffer[-1]`)
+  - TLS minimum is **TLS 1.2** (`ssl_version=TLSv1.2+` shipped in
+    `nrpe.cfg`, code default changed as well) and the default cipher
+    list drops `@SECLEVEL=0`, anonymous and export-grade ciphers
+    (`ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1` —
+    `!SSLv2`/`!SSLv3` ciphers are not selectable at all any more, so
+    they need no explicit exclusion)
+  - privilege dropping fails closed: an unresolvable `nrpe_user`/
+    `nrpe_group` or a failed `setgid`/`setuid`/`initgroups` aborts
+    startup, and plugin children exit instead of running as root
+    (`initgroups` EPERM stays non-fatal so running the daemon as an
+    unprivileged user, e.g. systemd `User=`, still works)
+  - the `allowed_hosts` ACL is evaluated before forking where possible,
+    so unauthenticated connection floods no longer cost a double-fork
+    per connection (DNS ACL entries still resolve in the child)
+  - the default `nasty_metachars` blacklist additionally rejects
+    `$`, `"`, `#`, `~` (`$IFS` expansion, quote injection, shell
+    comments and tilde expansion)
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary
 > arguments. Keep `allowed_hosts` in `/etc/nagios/nrpe.cfg` restricted to your
 > monitoring servers and use this only on trusted networks.
+
+> **TLS compatibility:** The daemon now requires TLS 1.2 or newer with
+> non-anonymous ciphers. Stock `check_nrpe` clients on any still-supported
+> distro (OpenSSL >= 1.0.1) negotiate this fine; very old clients or ones
+> pinned to TLS 1.0/1.1 will be refused. If you must support those,
+> relax `ssl_version`/`ssl_cipher_list` in `nrpe.cfg`.
 
 The binary package is renamed to `nagios-nrpe-server-ap` and declares
 `Provides`, `Replaces` and `Conflicts` on `nagios-nrpe-server`: it is a
