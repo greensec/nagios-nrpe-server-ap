@@ -10,12 +10,12 @@ Naming scheme:
 
 | Prefix | Meaning |
 |--------|---------|
-| `90_upstream_*` | Surgical backports of upstream post-4.1.3 commits |
+| `90_upstream_*`, `92_upstream_*` | Backports of upstream post-4.1.3 commits |
 | `9[1-6]_security_*` | Vendor security/robustness fixes (this project) |
 | `99_update_default_cfg` | Shipped configuration defaults |
 | `legacy_*` | EOL-only; applied **only** with a `debian.<codename>/` packaging overlay (jessie/stretch) |
 
-## 90_* — upstream backports
+## Upstream backports
 
 | Patch | What it fixes |
 |-------|---------------|
@@ -27,8 +27,9 @@ Naming scheme:
 | `90_upstream_reload_reset_config` | SIGHUP reload kept values for options removed from nrpe.cfg; adds `reset_config()`. (825d310) |
 | `90_upstream_socket_nonblock_cloexec` | `FD_CLOEXEC`+`O_NONBLOCK` on the accepted client socket — plugin children no longer inherit it (which could keep connections open). (bf4afc8) |
 | `90_upstream_ssl_sendall_recvall` | `SSL_read`/`SSL_write` can short-transfer; loops with `select()` until packet complete or timeout. Fixes truncated/missing responses on non-blocking sockets. (846a01a) |
+| `92_upstream_813ca0d_fixes` | Surgical extraction of upstream `813ca0d`/`ad44d84`: `0.0.0.0/0` ACL silently broken by UB shift (`~0u << 32` evaluated to `/32`); stale ACLs survived SIGHUP reload (now cleared); `my_system` `strncat` on unterminated `read()` buffer (stack over-read); `process_metachars` comma-operator loop condition; reload leaks; `fd_set` realloc/leak; `asprintf` checks; `ssl_verify_callback` `\|\|`→`&&` (valid certs weren't detail-logged). |
 
-## 91_* — first hardening pass
+## Vendor security and robustness fixes
 
 | Patch | What it fixes |
 |-------|---------------|
@@ -37,38 +38,17 @@ Naming scheme:
 | `91_security_failclosed_privdrop` | `drop_privileges()` only warned on unresolvable user/group or failed `setuid`/`setgid` → daemon and plugin children ran as root. Now fatal. |
 | `91_security_acl_prefork` | `allowed_hosts` is now evaluated in the parent before the double-fork, so unauthenticated connection floods don't cost two forks each. DNS ACLs still resolve in the child. |
 | `91_security_metachars_default` | Default `nasty_metachars` blacklist extended with `$ " # ~` (IFS expansion, quote injection, comment truncation, tilde expansion). |
-
-## 92_/93_* — second pass
-
-| Patch | What it fixes |
-|-------|---------------|
-| `92_upstream_813ca0d_fixes` | Surgical extraction of upstream `813ca0d`/`ad44d84`: `0.0.0.0/0` ACL silently broken by UB shift (`~0u << 32` evaluated to `/32`); stale ACLs survived SIGHUP reload (now cleared); `my_system` `strncat` on unterminated `read()` buffer (stack over-read); `process_metachars` comma-operator loop condition; reload leaks; `fd_set` realloc/leak; `asprintf` checks; `ssl_verify_callback` `\|\|`→`&&` (valid certs weren't detail-logged). |
 | `93_security_config_include_depth` | `include=`/`include_dir=` recursed unboundedly → stack exhaustion on config cycles; now bounded at 8. Also: `stat()` failure left `buf` uninitialized; `include_dir=` empty path read `[-1]`. |
 | `93_security_sendall_eagain` | `sendall()` broke on `EAGAIN` → non-blocking socket + stalled client = truncated response. Retries within `socket_timeout`. |
-
-## 94_* — third pass
-
-| Patch | What it fixes |
-|-------|---------------|
 | `94_security_my_system_fixes` | `*output[i]` precedence bug wrote a NUL through a wild pointer on fork-failure; unchecked `waitpid`/`WIFEXITED` → signal-killed plugins reported `STATE_OK` (now `STATE_CRITICAL`); unchecked output `calloc` → NULL deref. |
 | `94_security_acl_ipv6_mask` | IPv6 prefix parsed with `atoi()` → `::/typo` silently became `::/0` (allow-all). Digit-validated, bad entries refused. |
 | `94_security_inetd_acl` | `conn_check_peer()` only ran in the daemon accept loop → `allowed_hosts` was never enforced in inetd mode. Now enforced. |
-| `94_security_privdrop_numeric_user` | `initgroups()` got the raw config string → numeric `nrpe_user`/missing `nrpe_group` failed under the new fail-closed policy. Resolves via `getpwuid`, clears supplementary groups when unresolvable (no root-group residue). |
-
-## 95_* — analyzer-driven pass (nrpe.c)
-
-| Patch | What it fixes |
-|-------|---------------|
+| `94_security_privdrop_numeric_user` | `initgroups()` got the raw config string → numeric `nrpe_user`/missing `nrpe_group` failed under the fail-closed policy. Resolves via `getpwuid`, clears supplementary groups when unresolvable (no root-group residue). |
 | `95_security_failclosed_paths` | `process_metachars` `strdup` unchecked → alloc failure silently **disabled metachar filtering** (now fatal); `fd_set` calloc unchecked; `conn_check_peer` skipped ACL for non-INET families (AF_UNIX under a super-server walked past `allowed_hosts` — now refused); close-then-return double-close; defensive `nptr`/`nptr6` init. |
-| `95_security_privdrop_pw_init` | `pw` uninitialized on the numeric-UID path of `drop_privileges` — garbage pointer read by the initgroups resolver (regression fix for 94_security_privdrop_numeric_user). |
-
-## 96_* — analyzer pass, remaining TUs
-
-| Patch | What it fixes |
-|-------|---------------|
+| `95_security_privdrop_pw_init` | `pw` uninitialized on the numeric-UID path of `drop_privileges` — garbage pointer read by the initgroups resolver (fixes the numeric-user path). |
 | `96_security_alloc_robustness` | `clean_environ` uninitialized `var` → first `realloc` freed a wild pointer; unchecked reallocs; `trim()` `isspace` on signed char (UB on high-bit bytes) + missing NULL guards; unchecked ACL token alloc; `check_nrpe` unchecked packet callocs, NULL-deref on malformed reply, and unterminated `%s` print of wire data. |
 
-## 99_* — package defaults
+## Package defaults
 
 | Patch | What it does |
 |-------|--------------|
