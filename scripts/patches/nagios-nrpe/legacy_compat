@@ -1,60 +1,30 @@
-Description: Compatibility fixes for EOL distribution builds
+Description: Fix generated DH-parameter include for OpenSSL 1.0.x builds
  This patch is applied only when building with a dedicated EOL packaging
  overlay (debian.jessie/, debian.stretch/); build.sh skips all legacy_*
- patches for the modern distributions. It contains two adjustments:
+ patches for the modern distributions.
  .
- 1) Relax the TLS protocol floor. OpenSSL 1.0.1/1.1.0 and the monitoring
-    clients of that era predate TLS 1.2-only deployments, so the shipped
-    default is relaxed from TLSv1_2_plus back to TLSv1_plus (the upstream
-    default). The hardened cipher list is kept: it parses fine on both
-    libraries (the @SECLEVEL knob only exists on the >= 1.1.0 branch).
-    Administrators can restore the modern floor via 'ssl_version=TLSv1.2+'
-    in nrpe.cfg.
+ '#include "dh.h"' resolves to the system <openssl/dh.h> via
+ -I/usr/include/openssl before it can reach the generated
+ ../include/dh.h. On OpenSSL >= 1.1.0 this is harmless because
+ AUTO_SSL_DH (SSL_CTX_set_dh_auto) skips the include entirely; on
+ OpenSSL 1.0.x (jessie) the static-dh path is compiled and the wrong
+ header leaves get_dh2048() undeclared, breaking the link. Use a path
+ relative to the source file instead.
  .
- 2) Fix the generated DH-parameter include. '#include "dh.h"' resolves
-    to the system <openssl/dh.h> via -I/usr/include/openssl before it
-    can reach the generated ../include/dh.h. On OpenSSL >= 1.1.0 this is
-    harmless because AUTO_SSL_DH (SSL_CTX_set_dh_auto) skips the include
-    entirely; on OpenSSL 1.0.x (jessie) the static-dh path is compiled
-    and the wrong header leaves get_dh2048() undeclared, breaking the
-    link. Use a path relative to the source file instead.
+ Note: the TLS floor is NOT relaxed for the EOL builds - OpenSSL 1.0.1
+ (jessie) and 1.1.0 (stretch) both implement TLS 1.2, so the shipped
+ default stays ssl_version=TLSv1.2+. Administrators supporting
+ pre-TLS-1.2 clients can set 'ssl_version=TLSv1+' in nrpe.cfg.
 Origin: vendor
 Forwarded: not-needed
 ---
 --- a/src/nrpe.c
 +++ b/src/nrpe.c
 @@ -45,7 +45,7 @@
- 
+
  #ifdef HAVE_SSL
  # if defined(USE_SSL_DH) && !defined(AUTO_SSL_DH)
 -#  include "dh.h"
 +#  include "../include/dh.h"
  # endif
  #endif
- 
-@@ -160,9 +160,9 @@
- 
- SslParms sslprm = {
- #if OPENSSL_VERSION_NUMBER >= 0x10100000
--NULL, NULL, NULL, "ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1", TLSv1_2_plus, TRUE, 0, SSL_NoLogging
-+NULL, NULL, NULL, "ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1", TLSv1_plus, TRUE, 0, SSL_NoLogging
- #else
--NULL, NULL, NULL, "ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH", TLSv1_2_plus, TRUE, 0, SSL_NoLogging
-+NULL, NULL, NULL, "ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH", TLSv1_plus, TRUE, 0, SSL_NoLogging
- #endif
- };
- 
---- a/sample-config/nrpe.cfg.in
-+++ b/sample-config/nrpe.cfg.in
-@@ -216,8 +216,9 @@
- 
- #ssl_version=SSLv2+
- 
--# this package is built with a TLSv1.2 minimum
--ssl_version=TLSv1.2+
-+# this EOL package build allows TLSv1.0+ for compatibility with legacy
-+# clients; set ssl_version=TLSv1.2+ if all your clients support it
-+ssl_version=TLSv1+
- 
- # SSL USE ADH
- # This is for backward compatibility and is DEPRECATED. Set to 1 to enable

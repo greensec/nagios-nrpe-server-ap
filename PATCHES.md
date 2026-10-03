@@ -81,7 +81,7 @@ Applied **only** when `debian.<codename>/` overlay is in use
 
 | Patch | What it does |
 |-------|--------------|
-| `legacy_compat` | Relaxes the TLS floor to `TLSv1_plus` (`ssl_version=TLSv1+` shipped in cfg — clients of that era predate TLS-1.2-only; hardened cipher list kept). Fixes `#include "dh.h"` resolving to the system `<openssl/dh.h>` — harmless on OpenSSL ≥1.1.0 (`AUTO_SSL_DH` skips it) but a link failure on 1.0.x, where the static `get_dh2048()` is actually compiled in. |
+| `legacy_compat` | Fixes `#include "dh.h"` resolving to the system `<openssl/dh.h>` — harmless on OpenSSL ≥1.1.0 (`AUTO_SSL_DH` skips it) but a link failure on 1.0.x, where the static `get_dh2048()` is actually compiled in. The TLS floor is **not** relaxed on EOL builds: 1.0.1/1.1.0 both implement TLS 1.2, so `ssl_version=TLSv1.2+` stays (admins can lower to `TLSv1+` for pre-1.2 clients). |
 
 ## Deliberately not backported
 

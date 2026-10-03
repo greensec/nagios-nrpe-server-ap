@@ -24,17 +24,12 @@ The full catalog with per-patch details lives in [PATCHES.md](PATCHES.md).
 > arguments. Keep `allowed_hosts` in `/etc/nagios/nrpe.cfg` restricted to your
 > monitoring servers and use this only on trusted networks.
 
-> **TLS compatibility:** On the current distributions the daemon requires
-> TLS 1.2 or newer with non-anonymous ciphers. Stock `check_nrpe` clients
-> on any still-supported distro (OpenSSL >= 1.0.1) negotiate this fine;
-> very old clients or ones pinned to TLS 1.0/1.1 will be refused. If you
-> must support those, relax `ssl_version`/`ssl_cipher_list` in `nrpe.cfg`.
->
-> The **jessie and stretch** builds are exceptions: they ship
-> `ssl_version=TLSv1+` (TLS 1.0 and later, the upstream default) for
-> compatibility with the monitoring clients of that era. The hardened
-> cipher list is still in effect; raise the floor with
-> `ssl_version=TLSv1.2+` if all your clients support it.
+> **TLS compatibility:** The daemon requires TLS 1.2 or newer with
+> non-anonymous ciphers on **all** shipped distributions, including
+> jessie/stretch (OpenSSL 1.0.1/1.1.0 both implement TLS 1.2). Stock
+> `check_nrpe` clients on any still-supported distro negotiate this fine;
+> very old clients pinned to TLS 1.0/1.1 will be refused. If you must
+> support those, set `ssl_version=TLSv1+` in `nrpe.cfg`.
 
 The binary package is renamed to `nagios-nrpe-server-ap` and declares
 `Provides`, `Replaces` and `Conflicts` on `nagios-nrpe-server`: it is a
@@ -172,6 +167,6 @@ upstream `debian/` tree. The overlays (`debian.jessie/` → debhelper 9 +
 layout and let `scripts/prepare/` perform the package rename as usual.
 
 Distribution-specific source patches live in `scripts/patches/` with a
-`legacy_` prefix (currently `legacy_compat`: relaxed TLS floor plus a
-`dh.h` include fix needed on OpenSSL 1.0.x) and are only applied when a
+`legacy_` prefix (currently `legacy_compat`: a `dh.h` include fix
+needed on OpenSSL 1.0.x) and are only applied when a
 packaging overlay is in use — modern builds never see them.
