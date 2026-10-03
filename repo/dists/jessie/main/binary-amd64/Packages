@@ -1,6 +1,6 @@
 Package: nagios-nrpe-server-ap
 Source: nagios-nrpe
-Version: 4.1.3-1012~jessie1
+Version: 4.1.3-1013~jessie1
 Architecture: amd64
 Maintainer: Debian Nagios Maintainer Group <pkg-nagios-devel@lists.alioth.debian.org>
 Installed-Size: 517
@@ -14,11 +14,11 @@ Provides: nagios-nrpe-server
 Homepage: https://github.com/NagiosEnterprises/nrpe
 Priority: optional
 Section: net
-Filename: pool/main/n/nagios-nrpe/nagios-nrpe-server-ap_4.1.3-1012~jessie1_amd64.deb
-Size: 375024
-SHA256: 758a8c61418d33ef42eea272ef0a79c783a8b1e93be5426b2ee6da92532d8feb
-SHA1: 180b1e239fee6d4fa3222d84e921f801ea0373fa
-MD5sum: 9d4240f2ab2d102f954149d546ab1dce
+Filename: pool/main/n/nagios-nrpe/nagios-nrpe-server-ap_4.1.3-1013~jessie1_amd64.deb
+Size: 375058
+SHA256: 2a0aa7873cca102b59cd495ab697f0c637a5b09961a89d190a763c2f430d466f
+SHA1: e2bf23f792515ee99caf28ce463024809c8b53a7
+MD5sum: 3804df9ab801d14b73fe8a51c5fd63de
 Description: Nagios Remote Plugin Executor Server
  Nagios is a host/service/network monitoring and management system.
  .
