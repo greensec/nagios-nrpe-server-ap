@@ -8,70 +8,16 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
 - `include_dir=/etc/nagios/nrpe.d/` moved before the local config include
   (via `debian/patches/99_update_default_cfg`)
 - upstream fixes released after NRPE 4.1.3 backported
-  (`debian/patches/90_upstream_*`): IPv4 long option, remote port debug
-  output, memory leaks, config reset on reload, complete SSL reads/writes
-  (`ssl_recvall`/`ssl_sendall`), client sockets marked
-  non-blocking + close-on-exec so plugin children cannot inherit them,
-  `openssl/engine.h` only included for OpenSSL < 3.0, and the
-  `configure` C99-vsnprintf probe fixed for GCC >= 14
-  (from Fedora/PR https://github.com/NagiosEnterprises/nrpe/pull/273),
-  plus selected fixes from upstream 813ca0d/ad44d84
-  (`debian/patches/92_upstream_813ca0d_fixes`): ACLs cleared before
-  re-parsing `allowed_hosts` (removed hosts kept access after SIGHUP),
-  `/0` netmask evaluation fixed (was UB, silently denied everything),
-  NUL-termination of the plugin-output buffer in `my_system` (stack
-  over-read via `strncat`), `process_metachars` loop condition,
-  free-before-`strdup` on config re-parse, `snprintf` truncation check
-  in `read_config_dir`, `fd_set` leak, `asprintf` return checks, and
-  `ssl_verify_callback` cert-detail logging
-- security hardening (`debian/patches/91_security_*`):
-  - `buffer_length` of v3/v4 packets is converted with `ntohl()`
-    instead of `ntohs()` (upstream bug: the 16-bit truncation made the
-    forced string terminator land at `buffer[-1]`)
-  - TLS minimum is **TLS 1.2** (`ssl_version=TLSv1.2+` shipped in
-    `nrpe.cfg`, code default changed as well) and the default cipher
-    list drops `@SECLEVEL=0`, anonymous and export-grade ciphers
-    (`ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1` —
-    `!SSLv2`/`!SSLv3` ciphers are not selectable at all any more, so
-    they need no explicit exclusion)
-  - privilege dropping fails closed: an unresolvable `nrpe_user`/
-    `nrpe_group` or a failed `setgid`/`setuid`/`initgroups` aborts
-    startup, and plugin children exit instead of running as root
-    (`initgroups` EPERM stays non-fatal so running the daemon as an
-    unprivileged user, e.g. systemd `User=`, still works)
-  - the `allowed_hosts` ACL is evaluated before forking where possible,
-    so unauthenticated connection floods no longer cost a double-fork
-    per connection (DNS ACL entries still resolve in the child)
-  - the default `nasty_metachars` blacklist additionally rejects
-    `$`, `"`, `#`, `~` (`$IFS` expansion, quote injection, shell
-    comments and tilde expansion)
-- robustness (`debian/patches/93_security_*`): `include`/`include_dir`
-  nesting is bounded at 8 levels (a config cycle previously recursed
-  until stack exhaustion), `stat()` failures and empty `include_dir=`
-  paths no longer touch uninitialized/out-of-bounds memory, and
-  `sendall()` retries `EAGAIN` on the non-blocking client socket so a
-  stalled client can't truncate a response
-- additional hardening (`debian/patches/94_security_*`): `my_system()`
-  no longer performs a wild pointer write on the fork-failure path,
-  treats signal-killed plugins as failures instead of possibly
-  `STATE_OK`, and checks the output-buffer allocation; non-numeric
-  IPv6 prefix lengths in `allowed_hosts` are rejected instead of
-  silently becoming `::/0`; privilege dropping resolves the passwd
-  entry for `initgroups()` so numeric `nrpe_user` values and a missing
-  `nrpe_group` work correctly under the fail-closed policy; and
-  `allowed_hosts` is now enforced in inetd mode as well
-- static-analyzer pass (`debian/patches/95_security_*`): allocation
-  failures no longer silently disable the `nasty_metachars` filter,
-  the accept loop's `fd_set` is checked, `conn_check_peer()` refuses
-  connections of unknown address families instead of skipping the
-  ACL, and its error paths no longer leave a closed descriptor for
-  the caller to double-close
-- allocation robustness (`debian/patches/96_security_alloc_robustness`):
-  unchecked `realloc`/`malloc`/`calloc` in `clean_environ`, the ACL
-  parsers and `check_nrpe` are now handled (including an uninitialized
-  `var` that made the first `realloc` free a wild pointer), and the
-  `check_nrpe` client force-terminates received payloads before
-  printing them
+  (`debian/patches/90_upstream_*`, `92_upstream_*`)
+- several rounds of security and robustness fixes on top
+  (`debian/patches/9[1-6]_security_*`): TLS 1.2 minimum + hardened
+  cipher list, fail-closed privilege dropping, `allowed_hosts`
+  enforcement before forking and in inetd mode, an extended default
+  metachar blacklist, bounded `include`/`include_dir` recursion,
+  EAGAIN-tolerant `sendall`, strict IPv6 mask parsing, and a set of
+  memory-safety fixes found by `-fanalyzer`
+
+The full catalog with per-patch details lives in [PATCHES.md](PATCHES.md).
 
 > **Warning:** Allowing clients to pass command arguments is a security risk —
 > anyone allowed by `allowed_hosts` can run the defined commands with arbitrary
