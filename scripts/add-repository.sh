@@ -1,5 +1,6 @@
 #!/bin/sh
 # To add this repository please do:
+set -e
 
 if [ "$(whoami)" != "root" ]; then
     SUDO=sudo
