@@ -48,6 +48,7 @@ Naming scheme:
 | `95_security_privdrop_pw_init` | `pw` uninitialized on the numeric-UID path of `drop_privileges` — garbage pointer read by the initgroups resolver (fixes the numeric-user path). |
 | `96_security_alloc_robustness` | `clean_environ` uninitialized `var` → first `realloc` freed a wild pointer; unchecked reallocs; `trim()` `isspace` on signed char (UB on high-bit bytes) + missing NULL guards; unchecked ACL token alloc; `check_nrpe` unchecked packet callocs, NULL-deref on malformed reply, and unterminated `%s` print of wire data. |
 | `97_security_strtok_null` | With `--enable-command-args`, a request buffer of only `!` separators made `strtok()` return NULL → `strdup(NULL)` → NULL-deref crash of the connection child (found by libFuzzer; stock builds unaffected). |
+| `98_security_acl_ipv4_octet` | `add_ipv4_to_acl()` accumulated octet digits into a signed `int` with no per-octet bound — `allowed_hosts=10.0.0.4294967297` overflowed and wrapped to `10.0.0.1/32`, silently permitting a different host than configured. Octets are now rejected as soon as the accumulated value exceeds 255. |
 
 ## Package defaults
 

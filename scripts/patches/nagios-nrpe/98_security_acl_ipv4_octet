@@ -1,0 +1,31 @@
+Description: Reject over-wide IPv4 octets in allowed_hosts before int overflow
+ add_ipv4_to_acl() accumulates octet digits into a signed int with no
+ per-octet digit bound. An entry like "4294967297.2.3.4" overflows int
+ mid-accumulation and wraps to "1", so the ACL silently stores a
+ different address than configured (e.g. becomes 1.2.3.4/32). Reject
+ as soon as the accumulated value exceeds 255 - identical outcome for
+ valid input, but invalid input can no longer wrap into range.
+Author: GreenSEC (packaging hardening)
+Origin: vendor
+Bug: https://github.com/greensec/nagios-nrpe-server-ap
+Forwarded: no
+Last-Update: 2026-10-03
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/src/acl.c
++++ b/src/acl.c
+@@ -176,6 +176,14 @@
+                 case '0': case '1': case '2': case '3': case '4':
+                 case '5': case '6': case '7': case '8': case '9':
+                         octet = octet * 10 + CHAR_TO_NUMBER(c);
++                        if (octet > 255) {
++                                /* reject octets >255 here - continuing to
++                                   accumulate would overflow int and wrap
++                                   to a small value, silently accepting a
++                                   different address than configured */
++                                state = -1;
++                                break;
++                        }
+                         switch (state) {
+                         case 0: case 2: case 4: case 6: case 8:
+                                 state++;
