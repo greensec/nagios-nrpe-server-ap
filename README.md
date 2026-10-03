@@ -78,11 +78,17 @@ daemon (`nagios-nrpe-server`), rebuilt with support for command arguments:
 > arguments. Keep `allowed_hosts` in `/etc/nagios/nrpe.cfg` restricted to your
 > monitoring servers and use this only on trusted networks.
 
-> **TLS compatibility:** The daemon now requires TLS 1.2 or newer with
-> non-anonymous ciphers. Stock `check_nrpe` clients on any still-supported
-> distro (OpenSSL >= 1.0.1) negotiate this fine; very old clients or ones
-> pinned to TLS 1.0/1.1 will be refused. If you must support those,
-> relax `ssl_version`/`ssl_cipher_list` in `nrpe.cfg`.
+> **TLS compatibility:** On the current distributions the daemon requires
+> TLS 1.2 or newer with non-anonymous ciphers. Stock `check_nrpe` clients
+> on any still-supported distro (OpenSSL >= 1.0.1) negotiate this fine;
+> very old clients or ones pinned to TLS 1.0/1.1 will be refused. If you
+> must support those, relax `ssl_version`/`ssl_cipher_list` in `nrpe.cfg`.
+>
+> The **jessie and stretch** builds are exceptions: they ship
+> `ssl_version=TLSv1+` (TLS 1.0 and later, the upstream default) for
+> compatibility with the monitoring clients of that era. The hardened
+> cipher list is still in effect; raise the floor with
+> `ssl_version=TLSv1.2+` if all your clients support it.
 
 The binary package is renamed to `nagios-nrpe-server-ap` and declares
 `Provides`, `Replaces` and `Conflicts` on `nagios-nrpe-server`: it is a
@@ -105,6 +111,8 @@ drop-in replacement, but cannot be installed alongside the stock package.
 * bookworm
 * trixie
 * noble
+* stretch *(EOL — relaxed TLS defaults, see note above)*
+* jessie *(EOL — relaxed TLS defaults, see note above)*
 
 Packages are built for `amd64`.
 
@@ -202,4 +210,21 @@ same latest upstream release, applies the changes from `scripts/prepare/` and
 `scripts/patches/`, bumps the version to
 `<upstream>-<revision>*1000+<build>~<codename>1` (e.g. `4.1.3-1001~trixie1`)
 and produces the `.deb` files in the working directory. Supported flavors are
-listed in `.github/supported-releases.txt`.
+listed in `.github/supported-releases.txt` (EOL releases use their
+`debian/eol:*` container images).
+
+### EOL distributions
+
+Debian jessie and stretch predate the modern packaging toolchain
+(`debhelper-compat 13`, OpenSSL 1.1.1, `signed-by` apt sources). They are
+built from dedicated packaging overlays instead: `scripts/build.sh`
+detects the host codename and, when a matching `debian.<codename>/`
+directory exists at the repository root, swaps it in place of the
+upstream `debian/` tree. The overlays (`debian.jessie/` → debhelper 9 +
+`--with systemd`, `debian.stretch/` → debhelper 10) keep the same file
+layout and let `scripts/prepare/` perform the package rename as usual.
+
+Distribution-specific source patches live in `scripts/patches/` with a
+`legacy_` prefix (currently `legacy_compat`: relaxed TLS floor plus a
+`dh.h` include fix needed on OpenSSL 1.0.x) and are only applied when a
+packaging overlay is in use — modern builds never see them.

@@ -1,0 +1,6 @@
+Document: nagios-nrpe
+Title: NRPE Documentation
+Section: Network/Monitoring
+
+Format: PDF
+Files: /usr/share/doc/nagios-nrpe-server/*.pdf.gz

@@ -1,0 +1,92 @@
+nagios-nrpe (3.2.0-2) unstable; urgency=medium
+
+  The bug that caused the SSL support between NRPE 2.x and 3.x not
+  to work has been fixed.
+
+  Because the default SSL support without certificates configured
+  in nrpe.cfg uses pre-generated key data, configuring SSL
+  certificates is strongly advised when STunnel is not used.
+
+  The ssl-cert package can be used to generate a self-signed
+  certificate, but CA certificates like those from Let's Encrypt
+  are a better choice.
+
+  SSL support has been re-enabled by default, to be better compatible
+  with previous NRPE versions where SSL support was enabled by default
+  too.
+
+  The check_nrpe command definition has been updated to enable SSL
+  support (by removing the -n option) and the check_nrpe_ssl command
+  definition has been removed. The previous check_nrpe command
+  definition which disables SSL support is available with the new
+  check_nrpe_nossl command definition.
+
+ -- Bas Couwenberg <sebastic@debian.org>  Fri, 07 Jul 2017 13:48:38 +0200
+
+nagios-nrpe (3.0.1-1) unstable; urgency=medium
+
+  The check_nrpe command definition has been updated to remove the
+  arguments option, because nagios-nrpe-server does not support
+  command arguments since 2.15-1. And the check_nrpe_1arg command
+  definition has been removed.
+
+  If you're using the check_nrpe_1arg command in your Nagios/Icinga
+  configuration, you need to replace it with check_nrpe.
+
+  SSL support is disabled by default, the reworked SSL/TLS support in
+  NRPE requires configuration before it can be used. Read the
+  instructions in /usr/share/doc/nagios-nrpe-server/README.SSL.md.gz
+  before enabling SSL support in /etc/default/nagios-nrpe-server.
+
+  The default check_nrpe command in check_nrpe.cfg has been updated
+  to disable SSL by default too. The check_nrpe_ssl command has been
+  added to connect to the NRPE daemon over SSL.
+
+  Beware that the new NRPE daemon only works with old check_nrpe
+  plugins when SSL support is disabled on both sides, likewise the
+  new check_nrpe plugin only works with the old NRPE daemon when SSL
+  support is disabled.
+
+  To use SSL between the NRPE client and server, configuring Stunnel
+  is recommended.
+
+ -- Bas Couwenberg <sebastic@debian.org>  Mon, 05 Dec 2016 01:16:46 +0100
+
+nagios-nrpe (2.15-1) unstable; urgency=high
+
+  This update disables the command-args support in nrpe. The feature
+  has several security problems and is often used wrong. If you have to
+  use this feature recompile the package with --enable-command-args
+  in debian/rules.
+
+ -- Alexander Wirt <formorer@debian.org>  Tue, 15 Jul 2014 09:52:48 +0200
+
+nagios-nrpe (2.12-4) unstable; urgency=low
+
+  The pidfile creation mechanism changed with this update. If you do not 
+  add "pid_file=/var/run/nagios/nrpe.pid" to you nrpe config take care that
+  the user "nagios" is able to write to your pidfile location. You can also 
+  change the initscript to create the pid directory on your own. 
+
+ -- Alexander Wirt <formorer@debian.org>  Tue, 07 Jul 2009 07:42:13 +0200
+
+nagios-nrpe (2.12-3) unstable; urgency=low
+
+  The homedirectory of the nagios user moved to /var/lib/nagios
+  which is now common on all nagios related packages. Its recommended
+  that you migrate an already existing nagios user to use /var/lib/nagios 
+  as homedirectory. 
+
+ -- Alexander Wirt <formorer@debian.org>  Sat, 21 Mar 2009 09:08:58 +0100
+
+nagios-nrpe (2.4-1) unstable; urgency=low
+
+  the nagios-nrpe-doc package is no longer provided.  the documentation
+  can now be found in /usr/share/doc/nagios-nrpe-{server|plugins}.  new
+  versions of the plugin and server packages conflict with the doc
+  package to prevent the old (and possibly incorrect in the future)
+  documentation from remaining.  to fully purge all information about
+  the package you should run:
+  	dpkg -P nagios-nrpe-doc
+
+ -- sean finney <seanius@debian.org>  Mon, 13 Mar 2006 15:47:47 +0100

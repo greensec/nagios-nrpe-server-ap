@@ -14,6 +14,12 @@ source /etc/os-release
 ID="${ID:-}"
 VERSION_CODENAME="${VERSION_CODENAME:-}"
 
+if [[ -n "${ID}" && -z "${VERSION_CODENAME}" ]]; then
+    # EOL Debian releases (e.g. jessie) carry no VERSION_CODENAME; the
+    # codename only appears parenthesized in VERSION ("8 (jessie)")
+    VERSION_CODENAME="$(sed -n 's/.*(\([^()]*\)).*/\1/p' <<< "${VERSION:-}")"
+fi
+
 if [[ -z "${ID}" || -z "${VERSION_CODENAME}" ]]; then
     echo "Could not detect distribution ID or VERSION_CODENAME"
     exit 1
@@ -23,6 +29,25 @@ if [[ "${ID}" == "debian" ]]; then
     components="main contrib non-free non-free-firmware"
     mirror="http://deb.debian.org/debian"
     security_mirror="http://deb.debian.org/debian-security"
+
+    if [[ "${VERSION_CODENAME}" == "jessie" || "${VERSION_CODENAME}" == "stretch" ]]; then
+        # jessie/stretch are EOL: the debian/eol:* images already point at
+        # archive.debian.org, but defensively rewrite any stock entries.
+        # The security suite on the archive is named '<codename>/updates'.
+        components="main contrib non-free"
+        mirror="http://archive.debian.org/debian"
+        security_mirror="http://archive.debian.org/debian-security"
+        # archived Release files carry an expired Valid-Until (jessie's
+        # apt predates the check entirely, so this is harmless there)
+        echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99eol-archive
+        for list in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do
+            [[ -f "${list}" ]] || continue
+            sed -i -E \
+                -e "s#https?://(deb|security|ftp)\.debian\.org/debian-security#${security_mirror}#g" \
+                -e 's#https?://(deb|ftp)\.debian\.org/debian#http://archive.debian.org/debian#g' \
+                "${list}"
+        done
+    fi
 
     if [[ "${VERSION_CODENAME}" == "bullseye" ]]; then
         # bullseye is EOL: the bullseye-security pool was purged from the CDN
@@ -43,11 +68,19 @@ if [[ "${ID}" == "debian" ]]; then
         done
     fi
 
-    {
-        echo "deb-src ${mirror} ${VERSION_CODENAME} ${components}"
-        [[ -z "${security_mirror}" ]] || echo "deb-src ${security_mirror} ${VERSION_CODENAME}-security ${components}"
-        echo "deb-src ${mirror} ${VERSION_CODENAME}-updates ${components}"
-    } > /etc/apt/sources.list.d/debian-src.list
+    if [[ "${VERSION_CODENAME}" == "jessie" || "${VERSION_CODENAME}" == "stretch" ]]; then
+        # EOL security suites live at '<codename>/updates' on the archive
+        {
+            echo "deb-src ${mirror} ${VERSION_CODENAME} ${components}"
+            echo "deb-src ${security_mirror} ${VERSION_CODENAME}/updates ${components}"
+        } > /etc/apt/sources.list.d/debian-src.list
+    else
+        {
+            echo "deb-src ${mirror} ${VERSION_CODENAME} ${components}"
+            [[ -z "${security_mirror}" ]] || echo "deb-src ${security_mirror} ${VERSION_CODENAME}-security ${components}"
+            echo "deb-src ${mirror} ${VERSION_CODENAME}-updates ${components}"
+        } > /etc/apt/sources.list.d/debian-src.list
+    fi
 fi
 
 if [[ "${ID}" == "ubuntu" ]]; then

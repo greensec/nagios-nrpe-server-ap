@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    container:
-      image: "${{ inputs.flavor }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -45,10 +43,16 @@ jobs:
             printf '%s\n' "${repo_versions}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-      - name: Prepare build environment
-        run: ./scripts/ci/setup-build-env.sh
-      - name: Run build script
-        run: ./scripts/build.sh
+      - name: Prepare and build inside target container
+        # docker CLI rather than a job container: node20-based actions
+        # require glibc >= 2.28, which EOL images (jessie/stretch) lack.
+        run: |
+          set -eu
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            "${{ inputs.flavor }}" \
+            bash -c './scripts/ci/setup-build-env.sh && ./scripts/build.sh'
       - name: Upload deb files
         uses: actions/upload-artifact@v7
         with:

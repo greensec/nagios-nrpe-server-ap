@@ -19,7 +19,7 @@ jobs:
         id: releases
         run: |
           set -eu
-          mapfile -t releases < <(grep -E '^[a-z]+:[a-z0-9]+$' .github/supported-releases.txt)
+          mapfile -t releases < <(grep -E '^[a-z]+(/[a-z]+)?:[a-z0-9]+$' .github/supported-releases.txt)
           if [ "${#releases[@]}" -eq 0 ]; then
             echo "No supported releases found in .github/supported-releases.txt"
             exit 1
@@ -43,8 +43,6 @@ jobs:
       fail-fast: false
       matrix:
         os-version: ${{ fromJson(needs.prepare.outputs.os_matrix) }}
-    container:
-      image: "${{ matrix.os-version }}"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -52,10 +50,17 @@ jobs:
         run: |
           os_version="${{ matrix.os-version }}"
           echo "debian_release=${os_version##*:}" >> "$GITHUB_ENV"
-      - name: Prepare build environment
-        run: ./scripts/ci/setup-build-env.sh
-      - name: Run build script
-        run: ./scripts/build.sh
+      - name: Prepare and build inside target container
+        # The build runs via docker CLI rather than a job container:
+        # node20-based actions require glibc >= 2.28, which the EOL
+        # images (jessie/stretch) do not provide.
+        run: |
+          set -eu
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            "${{ matrix.os-version }}" \
+            bash -c './scripts/ci/setup-build-env.sh && ./scripts/build.sh'
       - name: Upload deb files
         uses: actions/upload-artifact@v7
         with:

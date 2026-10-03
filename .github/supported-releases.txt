@@ -1,4 +1,6 @@
 debian:bullseye
 debian:bookworm
 debian:trixie
+debian/eol:jessie
+debian/eol:stretch
 ubuntu:noble

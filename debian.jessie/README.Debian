@@ -1,0 +1,23 @@
+NRPE
+----
+
+Put any local check command you need into /etc/nagios/nrpe_local.cfg or
+as a *.cfg file in /etc/nagios/nrpe.d/
+These files are included from the /etc/nagios/nrpe.cfg
+
+This package is built without support for command argument processing. If you
+want to enable it, you will have to rebuild this package with
+--enable-command-args in debian/rules.
+The feature has several security problems and should not be used. If you
+really need some dynamic argument processing try check_by_ssh or something
+similar.
+
+Do not rely on SSL mode for security
+------------------------------------
+
+NRPE contains an SSL mode which encrypts the data over the NRPE channel.
+The current implementation does not verify client or server and uses
+pregenerated key data by default. It cannot be fixed right away because
+it would break the existing NRPE protocol.
+
+Please refer to the file SECURITY.md in this directory for more information.

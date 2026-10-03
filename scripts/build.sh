@@ -8,7 +8,7 @@ source "$SCRIPTDIR/common.sh"
 set -e
 
 if [ -z "${BUILD}" ]; then
-    BUILD="9"
+    BUILD="10"
 elif ! [[ "${BUILD}" =~ ^[0-9]+$ ]]; then
     errorline "BUILD must be a number, got: ${BUILD}"
     exit 1
@@ -17,6 +17,20 @@ fi
 PACKAGE_NAME="nagios-nrpe"
 DEBIAN_MIRROR="${DEBIAN_MIRROR:-https://deb.debian.org/debian}"
 SOURCE_SUITE="${SOURCE_SUITE:-unstable}"
+
+# detect the build host distribution early: it selects a dedicated
+# packaging overlay (debian.<codename>/) when one exists and becomes
+# part of the package version suffix
+DISTRO_CODENAME=$( . /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-}" )
+if [ -z "${DISTRO_CODENAME}" ]; then
+    # EOL Debian releases (e.g. jessie) carry no VERSION_CODENAME;
+    # the codename only appears parenthesized in VERSION
+    DISTRO_CODENAME=$( . /etc/os-release 2>/dev/null; echo "${VERSION:-}" | sed -n 's/.*(\([^()]*\)).*/\1/p' )
+fi
+PACKAGING_OVERLAY=""
+if [ -n "${DISTRO_CODENAME}" ] && [ -d "${SCRIPTDIR}/../debian.${DISTRO_CODENAME}" ]; then
+    PACKAGING_OVERLAY="${SCRIPTDIR}/../debian.${DISTRO_CODENAME}"
+fi
 
 statusline "Run apt-get update to download source updates"
 cd "${WORKDIR}"
@@ -117,6 +131,19 @@ for PACKAGE in "${PACKAGES[@]}"; do
         cd "${PACKAGE}"
     fi
 
+    # swap in the dedicated packaging overlay when one exists for this
+    # distribution (e.g. debian.jessie/ for debhelper-9-era systems)
+    if [ -n "${PACKAGING_OVERLAY}" ]; then
+        statusline "Using dedicated packaging debian.${DISTRO_CODENAME}"
+        mv debian debian.upstream
+        cp -a "${PACKAGING_OVERLAY}" debian
+        # the overlay ships no quilt series: reuse upstream's, since its
+        # patches were already applied to the tree by dpkg-source -x
+        mkdir -p debian/patches
+        cp -a debian.upstream/patches/. debian/patches/
+        rm -rf debian.upstream
+    fi
+
     # install build dependencies declared by the extracted debian/control
     statusline "Install build dependencies"
     missing=$(dpkg-checkbuilddeps 2>&1 | sed -n 's/.*[Uu]nmet build dependencies: //p' \
@@ -137,7 +164,9 @@ for PACKAGE in "${PACKAGES[@]}"; do
         bash ./debian/prepare.sh
     fi
 
-    VERSION=$(dpkg-parsechangelog -l debian/changelog -S Version)
+    # note: old dpkg-parsechangelog (jessie) requires the -l<file> form
+    # with an attached argument, and defaults to debian/changelog anyway
+    VERSION=$(dpkg-parsechangelog -S Version)
     if [ -z "$VERSION" ]; then
         errorline "Failed to fetch package version!"
         exit 1
@@ -168,7 +197,6 @@ for PACKAGE in "${PACKAGES[@]}"; do
     # append the distro codename so every target gets a unique package
     # version - the APT repo publisher dedups on name+version and
     # reprepro stores one pool file per version
-    DISTRO_CODENAME=$( . /etc/os-release 2>/dev/null; echo "${VERSION_CODENAME:-}" )
     DISTRO_SUFFIX="~${DISTRO_CODENAME:-local}1"
 
     # dpkg expects the upstream tarball as <pkg>_<upstream-version>.orig.tar.*
@@ -182,6 +210,16 @@ for PACKAGE in "${PACKAGES[@]}"; do
     if [ -d "$SCRIPTDIR/patches/${PACKAGE}" ]; then
         for x in "$SCRIPTDIR/patches/${PACKAGE}"/*; do
             [ -e "${x}" ] || continue
+            # 'legacy_*' patches carry EOL-distribution compatibility
+            # fixes (e.g. relaxed TLS floor); they must not be applied
+            # to the modern builds
+            case "$(basename "${x}")" in
+                legacy_*)
+                    if [ -z "${PACKAGING_OVERLAY}" ]; then
+                        continue
+                    fi
+                    ;;
+            esac
             statusline "Add patch $(basename "${x}") to ${PACKAGE}"
             mkdir -p debian/patches/
             cp -v "${x}" debian/patches/

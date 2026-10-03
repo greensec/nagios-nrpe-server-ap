@@ -15,7 +15,17 @@ ${SUDO} wget -O "${KEYRING}" https://greensec.github.io/nagios-nrpe-server-ap/pu
 codename=$(lsb_release -sc)
 vendor=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
 
-if [ -f "/etc/apt/sources.list.d/${vendor}.sources" ]; then
+# apt < 1.1 (e.g. Debian jessie) has no signed-by support in deb lines
+# and needs apt-transport-https for https repositories
+apt_version="$(apt-get --version | sed -n '1{s/^apt //;s/ .*//;p}')"
+apt_major="${apt_version%%.*}"
+apt_minor="${apt_version#*.}"; apt_minor="${apt_minor%%.*}"
+if [ "${apt_major:-0}" -lt 1 ] || { [ "${apt_major}" -eq 1 ] && [ "${apt_minor:-0}" -lt 1 ]; }; then
+    ${SUDO} apt-get -y install apt-transport-https
+    ${SUDO} apt-key add "${KEYRING}"
+    ${SUDO} rm -f /etc/apt/sources.list.d/nagios-nrpe-server-ap.sources
+    echo "deb ${REPO_URL} ${codename} main" | ${SUDO} tee /etc/apt/sources.list.d/nagios-nrpe-server-ap.list >/dev/null
+elif [ -f "/etc/apt/sources.list.d/${vendor}.sources" ]; then
     ${SUDO} rm -f /etc/apt/sources.list.d/nagios-nrpe-server-ap.list
     cat <<EOF | ${SUDO} tee /etc/apt/sources.list.d/nagios-nrpe-server-ap.sources >/dev/null
 Types: deb

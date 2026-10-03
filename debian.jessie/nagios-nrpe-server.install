@@ -1,0 +1,3 @@
+src/nrpe               usr/sbin
+sample-config/nrpe.cfg etc/nagios
+debian/nrpe_local.cfg  etc/nagios
