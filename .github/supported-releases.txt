@@ -3,4 +3,5 @@ debian:bookworm
 debian:trixie
 debian/eol:jessie
 debian/eol:stretch
+ubuntu:jammy
 ubuntu:noble

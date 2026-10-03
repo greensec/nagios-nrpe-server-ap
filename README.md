@@ -110,6 +110,7 @@ drop-in replacement, but cannot be installed alongside the stock package.
 * bullseye
 * bookworm
 * trixie
+* jammy
 * noble
 * stretch *(EOL — relaxed TLS defaults, see note above)*
 * jessie *(EOL — relaxed TLS defaults, see note above)*
