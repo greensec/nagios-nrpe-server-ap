@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nagios-nrpe-server-ap</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; max-width: 52em;
+         margin: 3em auto; padding: 0 1em; line-height: 1.55; color: #24292f; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+              background: #f6f8fa; border-radius: 4px; }
+  code { padding: .15em .35em; }
+  pre  { padding: .8em 1em; overflow-x: auto; }
+  table { border-collapse: collapse; }
+  td, th { border: 1px solid #d0d7de; padding: .3em .8em; text-align: left; }
+  h1 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+  .warn { border-left: 4px solid #d4a72c; background: #fff8c5; padding: .6em 1em; }
+</style>
+</head>
+<body>
+<h1>nagios-nrpe-server-ap</h1>
+<p>
+  A drop-in replacement for the Debian <code>nagios-nrpe-server</code> package,
+  built from NRPE 4.1.3 with <code>--enable-command-args</code>, upstream
+  post-4.1.3 backports and several rounds of security hardening.
+</p>
+<p class="warn">
+  Command arguments are enabled (<code>dont_blame_nrpe=1</code>): clients can
+  pass arguments to the commands defined in <code>nrpe.cfg</code> via
+  <code>check_nrpe -a</code>. Keep <code>allowed_hosts</code> restricted to your
+  monitoring servers. The daemon requires TLS&nbsp;1.2+ with non-anonymous
+  ciphers on all shipped distributions.
+</p>
+
+<h2>Install</h2>
+<pre>wget -O- https://greensec.github.io/nagios-nrpe-server-ap/scripts/add-repository.sh | bash
+apt-get install nagios-nrpe-server-ap</pre>
+<p>
+  Or grab a <code>.deb</code> from the
+  <a href="https://github.com/greensec/nagios-nrpe-server-ap/releases">releases</a>
+  and <code>apt-get install ./nagios-nrpe-server-ap_*_amd64.deb</code>.
+</p>
+
+<h2>Supported distributions</h2>
+<table>
+  <tr><th>Distribution</th><th>Suite</th></tr>
+  <tr><td>Debian 11 bullseye</td><td><code>bullseye</code></td></tr>
+  <tr><td>Debian 12 bookworm</td><td><code>bookworm</code></td></tr>
+  <tr><td>Debian 13 trixie</td><td><code>trixie</code></td></tr>
+  <tr><td>Debian 8 jessie (EOL)</td><td><code>jessie</code></td></tr>
+  <tr><td>Debian 9 stretch (EOL)</td><td><code>stretch</code></td></tr>
+  <tr><td>Ubuntu 22.04 jammy</td><td><code>jammy</code></td></tr>
+  <tr><td>Ubuntu 24.04 noble</td><td><code>noble</code></td></tr>
+</table>
+
+<h2>Links</h2>
+<ul>
+  <li><a href="https://github.com/greensec/nagios-nrpe-server-ap">GitHub repository</a>
+      &middot; <a href="https://github.com/greensec/nagios-nrpe-server-ap/blob/master/README.md">README</a>
+      &middot; <a href="https://github.com/greensec/nagios-nrpe-server-ap/blob/master/PATCHES.md">PATCHES.md</a></li>
+  <li>APT repository: <code>repo/</code> &middot;
+      Signing key: <a href="public.key"><code>public.key</code></a></li>
+</ul>
+</body>
+</html>
