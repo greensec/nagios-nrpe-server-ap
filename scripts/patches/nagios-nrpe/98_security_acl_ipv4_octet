@@ -5,6 +5,11 @@ Description: Reject over-wide IPv4 octets in allowed_hosts before int overflow
  different address than configured (e.g. becomes 1.2.3.4/32). Reject
  as soon as the accumulated value exceeds 255 - identical outcome for
  valid input, but invalid input can no longer wrap into range.
+ .
+ Also assemble the network-order address from the four octets in
+ unsigned arithmetic: (data[0] << 24) is a signed-int shift that
+ overflows into the sign bit for any first octet >= 128, which is
+ undefined behaviour (found by UBSan fuzzing).
 Author: GreenSEC (packaging hardening)
 Origin: vendor
 Bug: https://github.com/greensec/nagios-nrpe-server-ap
@@ -14,7 +19,7 @@ Last-Update: 2026-10-03
 This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
 --- a/src/acl.c
 +++ b/src/acl.c
-@@ -176,6 +176,14 @@
+@@ -180,6 +180,14 @@
                  case '0': case '1': case '2': case '3': case '4':
                  case '5': case '6': case '7': case '8': case '9':
                          octet = octet * 10 + CHAR_TO_NUMBER(c);
@@ -29,3 +34,18 @@ This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
                          switch (state) {
                          case 0: case 2: case 4: case 6: case 8:
                                  state++;
+@@ -239,8 +247,12 @@
+                 return 0;
+         }
+ 
+-        /* Convert ip and mask to unsigned long */
+-        ip = htonl((data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3]);
++        /* Convert ip and mask to unsigned long - the shifts are done in
++           unsigned arithmetic: a first octet >= 128 would otherwise
++           overflow a signed-int shift into the sign bit (UB) */
++        ip = htonl(((unsigned int) data[0] << 24) +
++                   ((unsigned int) data[1] << 16) +
++                   ((unsigned int) data[2] << 8) + (unsigned int) data[3]);
+         mask = (data[4] == 0) ? 0 : htonl(~0u << (32 - data[4]));
+ 
+         /* Wrong network address */
