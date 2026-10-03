@@ -1,0 +1,27 @@
+Description: Fix NULL dereference on all-delimiter request buffers in
+ validate_request()
+ With --enable-command-args, the command name is tokenized with
+ strtok(buff, "!"). A request whose buffer consists only of '!'
+ separators (e.g. "!") makes strtok() return NULL, which is passed
+ straight to strdup() -> NULL dereference -> the connection child
+ crashes. Reachable by any host allowed by allowed_hosts; each
+ malicious request kills its connection child (the parent survives,
+ so this is a per-request crash / availability issue, not daemon
+ death). Stock builds without --enable-command-args always use the
+ non-NULL buff path and are unaffected.
+Origin: vendor
+Forwarded: not-needed
+---
+--- a/src/nrpe.c
++++ b/src/nrpe.c
+@@ -2814,6 +2814,10 @@
+ #else
+ 	ptr = buff;
+ #endif
++	if (ptr == NULL) {
++		logit(LOG_ERR, "Error: Request contained no command name!");
++		return ERROR;
++	}
+ 	command_name = strdup(ptr);
+ 	if (command_name == NULL) {
+ 		logit(LOG_ERR, "Error: Memory allocation failed");

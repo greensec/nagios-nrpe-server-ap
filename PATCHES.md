@@ -47,6 +47,7 @@ Naming scheme:
 | `95_security_failclosed_paths` | `process_metachars` `strdup` unchecked → alloc failure silently **disabled metachar filtering** (now fatal); `fd_set` calloc unchecked; `conn_check_peer` skipped ACL for non-INET families (AF_UNIX under a super-server walked past `allowed_hosts` — now refused); close-then-return double-close; defensive `nptr`/`nptr6` init. |
 | `95_security_privdrop_pw_init` | `pw` uninitialized on the numeric-UID path of `drop_privileges` — garbage pointer read by the initgroups resolver (fixes the numeric-user path). |
 | `96_security_alloc_robustness` | `clean_environ` uninitialized `var` → first `realloc` freed a wild pointer; unchecked reallocs; `trim()` `isspace` on signed char (UB on high-bit bytes) + missing NULL guards; unchecked ACL token alloc; `check_nrpe` unchecked packet callocs, NULL-deref on malformed reply, and unterminated `%s` print of wire data. |
+| `97_security_strtok_null` | With `--enable-command-args`, a request buffer of only `!` separators made `strtok()` return NULL → `strdup(NULL)` → NULL-deref crash of the connection child (found by libFuzzer; stock builds unaffected). |
 
 ## Package defaults
 
