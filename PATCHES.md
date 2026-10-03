@@ -34,7 +34,7 @@ Naming scheme:
 | Patch | What it fixes |
 |-------|---------------|
 | `91_security_buffer_length_ntohl` | v3/v4 `buffer_length` (32-bit) was read with `ntohs()` → truncated to 16 bits; the forced terminator landed at `buffer[-1]`. Now `ntohl()`. |
-| `91_security_tls_hardening` | Code default `TLSv1_plus`+`ALL:!MD5:@STRENGTH:@SECLEVEL=0` → `TLSv1_2_plus`+`ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1`; shipped cfg sets `ssl_version=TLSv1.2+`. |
+| `91_security_tls_hardening` | Code default `TLSv1_plus`+`ALL:!MD5:@STRENGTH:@SECLEVEL=0` → `TLSv1_2_plus`+`ALL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=0`; shipped cfg sets `ssl_version=TLSv1.2+`. `aNULL` kept: certificate-less mode needs ADH ciphers; tighten via `ssl_cipher_list` when `ssl_cert_file` is configured. |
 | `91_security_failclosed_privdrop` | `drop_privileges()` only warned on unresolvable user/group or failed `setuid`/`setgid` → daemon and plugin children ran as root. Now fatal. |
 | `91_security_acl_prefork` | `allowed_hosts` is now evaluated in the parent before the double-fork, so unauthenticated connection floods don't cost two forks each. DNS ACLs still resolve in the child. |
 | `91_security_metachars_default` | Default `nasty_metachars` blacklist extended with `$ " # ~` (IFS expansion, quote injection, comment truncation, tilde expansion). |

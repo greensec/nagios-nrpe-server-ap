@@ -64,7 +64,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/workspace" \
             -w /workspace \
             "${{ matrix.os-version }}" \
-            bash -c './scripts/ci/setup-build-env.sh && ./scripts/build.sh'
+            bash -c './scripts/ci/setup-build-env.sh && ./scripts/build.sh && ./scripts/test/smoke.sh'
       - name: Upload deb files
         uses: actions/upload-artifact@v7
         with:

@@ -1,13 +1,17 @@
 Description: Harden TLS defaults to TLSv1.2+ and a restricted cipher list
  The daemon previously defaulted to TLSv1_plus (TLS 1.0 and later) and
- to the cipher string 'ALL:!MD5:@STRENGTH:@SECLEVEL=0', which disables
- OpenSSL security-level enforcement and permits anonymous (aNULL/eNULL)
- and export-grade ciphers. The code default is now TLSv1_2_plus and
- 'ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1'
- ('ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH' on OpenSSL < 1.1.0,
- which has no @SECLEVEL).
+ to the cipher string 'ALL:!MD5:@STRENGTH:@SECLEVEL=0', which also
+ permits eNULL/LOW/EXP/RC4/MD5-grade ciphers. The code default is now
+ TLSv1_2_plus and 'ALL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=0'
+ ('ALL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH' on OpenSSL < 1.1.0, which
+ has no @SECLEVEL).
+ aNULL is intentionally retained: NRPE's default certificate-less mode
+ negotiates anonymous-DH ciphers, so removing aNULL would leave the
+ daemon with no usable ciphers out of the box. Deployments that
+ configure ssl_cert_file can and should tighten this further with
+ ssl_cipher_list (e.g. add !aNULL and @SECLEVEL=1).
  Note: this changes on-the-wire behaviour - peers using TLS < 1.2 or
- relying on anonymous-DH/weak ciphers are now rejected. Older check_nrpe
+ relying on eNULL/weak ciphers are now rejected. Older check_nrpe
  clients must be able to negotiate TLS 1.2; both sides can still be
  adjusted via ssl_version/ssl_cipher_list.
  The shipped sample configuration also sets ssl_version=TLSv1.2+
@@ -22,10 +26,10 @@ Forwarded: not-needed
  SslParms sslprm = {
  #if OPENSSL_VERSION_NUMBER >= 0x10100000
 -NULL, NULL, NULL, "ALL:!MD5:@STRENGTH:@SECLEVEL=0", TLSv1_plus, TRUE, 0, SSL_NoLogging
-+NULL, NULL, NULL, "ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=1", TLSv1_2_plus, TRUE, 0, SSL_NoLogging
++NULL, NULL, NULL, "ALL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH:@SECLEVEL=0", TLSv1_2_plus, TRUE, 0, SSL_NoLogging
  #else
 -NULL, NULL, NULL, "ALL:!MD5:@STRENGTH", TLSv1_plus, TRUE, 0, SSL_NoLogging
-+NULL, NULL, NULL, "ALL:!aNULL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH", TLSv1_2_plus, TRUE, 0, SSL_NoLogging
++NULL, NULL, NULL, "ALL:!eNULL:!LOW:!EXP:!RC4:!MD5:@STRENGTH", TLSv1_2_plus, TRUE, 0, SSL_NoLogging
  #endif
  };
  
