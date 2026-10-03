@@ -1,0 +1,17 @@
+Codename: jammy
+Date: Sat, 03 Oct 2026 00:54:12 UTC
+Architectures: amd64
+Components: main
+Description: greensec/nagios-nrpe-server-ap
+MD5Sum:
+ b50ee95c9b558523cbbfc3e86f342a13 1281 main/binary-amd64/Packages
+ 2c9be74e929884ab25a2feaf772d7691 757 main/binary-amd64/Packages.gz
+ 2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+SHA1:
+ 6d4683ca04be144e3caf714f780427e9564509f7 1281 main/binary-amd64/Packages
+ ef9214297b02a33a77e9916339f067ee66353bf6 757 main/binary-amd64/Packages.gz
+ f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+SHA256:
+ e613d20e2fc90e3f83178ed33eaf4bebe3e2e56a3861b2f7cc2918b2b2b0d16c 1281 main/binary-amd64/Packages
+ 0c7e8e825af52e3ec05860e3099b0926c92c2a4268a26762e2ecaa17258a6142 757 main/binary-amd64/Packages.gz
+ 78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
