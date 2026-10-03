@@ -29,14 +29,15 @@ else
 	exit 1
 fi
 
+# we also used to include this file, so if it's there
+# we include it as well (sourced first so our own
+# defaults below always take precedence)
+if [ -f /etc/default/nagios-nrpe ]; then
+	. /etc/default/nagios-nrpe
+fi
 # Include nagios-nrpe defaults if available
 if [ -f /etc/default/nagios-nrpe-server ] ; then
 	. /etc/default/nagios-nrpe-server
-fi
-# we also used to include this file, so if it's there
-# we include it as well
-if [ -f /etc/default/nagios-nrpe ]; then
-	. /etc/default/nagios-nrpe
 fi
 if [ "$NICENESS" ]; then NICENESS="-n $NICENESS"; fi
 

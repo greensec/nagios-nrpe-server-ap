@@ -9,6 +9,8 @@ jobs:
   prepare:
     name: Prepare release matrix
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       os_matrix: ${{ steps.releases.outputs.os_matrix }}
       repo_versions: ${{ steps.releases.outputs.repo_versions }}
@@ -38,6 +40,8 @@ jobs:
   build:
     name: Build packages
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: prepare
     strategy:
       fail-fast: false
@@ -73,6 +77,8 @@ jobs:
   merge-artefacts:
     name: Merge all deb files to single artifact
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: build
     steps:
       - name: debian-packages

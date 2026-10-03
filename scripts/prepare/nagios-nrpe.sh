@@ -55,3 +55,35 @@ done
 if [ -f debian/NEWS ]; then
     sed -i "s|/etc/default/${old_pkg}|/etc/default/${new_pkg}|g; s|/usr/share/doc/${old_pkg}|/usr/share/doc/${new_pkg}|g" debian/NEWS
 fi
+
+# Debian's init script sources the package's /etc/default file first and the
+# ancient /etc/default/nagios-nrpe file second, so a leftover legacy file can
+# silently override our defaults (e.g. NRPE_OPTS="-n" would disable TLS).
+# Swap the order: legacy file first (compat fallback), our file last.
+# The rewrite only runs while the -ap include still precedes the legacy one,
+# so re-running this script on a prepared tree is a safe no-op.
+init="debian/${new_pkg}.init"
+if [ -f "$init" ]; then
+    ap_ln=$(awk '/\/etc\/default\/nagios-nrpe-server-ap/{print NR; exit}' "$init")
+    leg_ln=$(awk '/\/etc\/default\/nagios-nrpe[^-]/{print NR; exit}' "$init")
+    if [ -n "$ap_ln" ] && [ -n "$leg_ln" ] && [ "$ap_ln" -lt "$leg_ln" ]; then
+        sed -i '/^# Include nagios-nrpe defaults if available$/{N;N;N;N;N;N;N;N;c\
+# we also used to include this file, so if it'"'"'s there\
+# we include it as well\
+if [ -f /etc/default/nagios-nrpe ]; then\
+	. /etc/default/nagios-nrpe\
+fi\
+\
+# Include nagios-nrpe defaults if available\
+if [ -f /etc/default/nagios-nrpe-server-ap ] ; then\
+	. /etc/default/nagios-nrpe-server-ap\
+fi
+}' "$init"
+        ap_ln=$(awk '/\/etc\/default\/nagios-nrpe-server-ap/{print NR; exit}' "$init")
+        leg_ln=$(awk '/\/etc\/default\/nagios-nrpe[^-]/{print NR; exit}' "$init")
+        if [ -z "$ap_ln" ] || [ -z "$leg_ln" ] || [ "$leg_ln" -ge "$ap_ln" ]; then
+            echo "ERROR: failed to reorder /etc/default includes in $init" >&2
+            exit 1
+        fi
+    fi
+fi
