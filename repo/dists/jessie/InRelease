@@ -1,0 +1,36 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Codename: jessie
+Date: Sat, 03 Oct 2026 00:45:42 UTC
+Architectures: amd64
+Components: main
+Description: greensec/nagios-nrpe-server-ap
+MD5Sum:
+ 04087b31b27306577e06f191168cbbef 1279 main/binary-amd64/Packages
+ c9cdec6653a33621a0ea87d29d54e58d 752 main/binary-amd64/Packages.gz
+ 2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+SHA1:
+ b677ee3c0bbdff4e2a59efe527627f6821de8461 1279 main/binary-amd64/Packages
+ 353dbc650b9146ab31972f6949a756554f600535 752 main/binary-amd64/Packages.gz
+ f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+SHA256:
+ 8bb3a701f88e7c8ddcbef3921978c5340f18a9695d51cea4b40e833600fa00f2 1279 main/binary-amd64/Packages
+ 902b19595b283eb5afb265990092c3b5db2ffd4cb52e32872479f7e16bf2b6c8 752 main/binary-amd64/Packages.gz
+ 78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrAUDYACgkQLfCqaigF
+WCkhAg/+KD2o8qqRdB8AxQTfZdFrWdLW13+qcSVMvIsLsvHgFjkc7DkH6KjFyh4i
+1OlaAkgOkraELwvjMYIBCxQe4QoCiLu/lnPruXbK8+CTx8z2eq4awyr0z5UBIzVp
+fbFe1y4RaGvg3Vyom3SOdBMKJTUS3bUvjei23k8379nATdyHSTfp3BDTG+YMkp8z
+5DM279pnaxZZci5e4qjR06tRpdM1vJltD4yVKzMpWrB9rBwPn/n83K39qjbI+HXY
+TVgREh/lPN/wgldMcW0HLtNacuxlB04+H0+a+5gmDFEekyEtPB/cbmJ+lER1CM8+
+apypRKmqKEB3H5/ZK3QddGg9JNZJJSBFN24/9W+AGckBJmGj9uQ5TjQa0BhRUphX
+p7c8PAECGWvH9Ddj+Na9aKZ7ZGfNcnirhu6nBUUF3ErLzEDtZo9tV/GeAO9yEiYA
+tATnLS3sLckwtG45RNdyiVODUkuh105OHmdM2ReE3ku82GYV1KCbUyOPqjXdAaZh
+1BuQs4kOKxfTyTmMcf2DMOhnuqJrRxfnZP0tpBAkyzu7gjbNBWrPxLmeBgIDeuz/
+wU29f7zFonLq0Uh+iMCmu0siTHIvslsdJxQtbJCioCnCq+EAAFpYM/W/V8BnpXnI
+8GO3huMTq6l1bdVsklqXo7C5w+1HdrdbJX7RPwD/aZ6cfDZf7zo=
+=lCBS
+-----END PGP SIGNATURE-----

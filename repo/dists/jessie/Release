@@ -1,0 +1,17 @@
+Codename: jessie
+Date: Sat, 03 Oct 2026 00:45:42 UTC
+Architectures: amd64
+Components: main
+Description: greensec/nagios-nrpe-server-ap
+MD5Sum:
+ 04087b31b27306577e06f191168cbbef 1279 main/binary-amd64/Packages
+ c9cdec6653a33621a0ea87d29d54e58d 752 main/binary-amd64/Packages.gz
+ 2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+SHA1:
+ b677ee3c0bbdff4e2a59efe527627f6821de8461 1279 main/binary-amd64/Packages
+ 353dbc650b9146ab31972f6949a756554f600535 752 main/binary-amd64/Packages.gz
+ f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+SHA256:
+ 8bb3a701f88e7c8ddcbef3921978c5340f18a9695d51cea4b40e833600fa00f2 1279 main/binary-amd64/Packages
+ 902b19595b283eb5afb265990092c3b5db2ffd4cb52e32872479f7e16bf2b6c8 752 main/binary-amd64/Packages.gz
+ 78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
