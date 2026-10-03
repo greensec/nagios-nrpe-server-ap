@@ -15,7 +15,7 @@ Homepage: https://github.com/NagiosEnterprises/nrpe
 
 Package: nagios-nrpe-server
 Architecture: any
-Depends: sysvinit-utils,
+Depends:
          ${shlibs:Depends},
          ${misc:Depends}
 Recommends: monitoring-plugins-basic | monitoring-plugins

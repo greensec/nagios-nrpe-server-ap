@@ -25,9 +25,10 @@ sed -i "/^Package: ${new_pkg}\$/a Replaces: ${old_pkg}\nProvides: ${old_pkg}" de
 
 # the init script only needs the lsb init helpers; they moved from
 # lsb-base to sysvinit-utils in 3.05-4, but bullseye/jammy (and the EOL
-# overlays) ship earlier versions - keep the dependency unversioned so
-# the package stays installable everywhere we publish
-sed -i 's/sysvinit-utils (>= 3\.05-4~)/sysvinit-utils/' debian/control
+# overlays) ship earlier versions. sysvinit-utils is Essential: yes on
+# every distribution we publish for, so the dependency is redundant
+# (and lintian flags it) - remove it entirely
+sed -i 's/sysvinit-utils (>= 3\.05-4~),[[:space:]]*//' debian/control
 
 # some flavors (e.g. Ubuntu) already build with --enable-command-args.
 if ! grep -q -- '--enable-command-args' debian/rules; then

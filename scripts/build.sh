@@ -238,7 +238,7 @@ EOF
     cat debian/changelog >>debian/changelog.2
     mv debian/changelog.2 debian/changelog
     statusline "Start build process"
-    DEB_BUILD_OPTIONS="noautodbgsym nocheck nodocs" dpkg-buildpackage -j$(nproc) -d -us -uc -b
+    DEB_BUILD_OPTIONS="noautodbgsym nocheck nodocs" dpkg-buildpackage -j"$(nproc)" -d -us -uc -b
     cd ..
 done
 
