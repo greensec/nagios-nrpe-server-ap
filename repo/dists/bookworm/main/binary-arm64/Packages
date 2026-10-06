@@ -1,0 +1,30 @@
+Package: nagios-nrpe-server-ap
+Source: nagios-nrpe
+Version: 4.1.3-1017~bookworm1
+Architecture: arm64
+Maintainer: Debian Nagios Maintainer Group <pkg-nagios-devel@lists.alioth.debian.org>
+Installed-Size: 525
+Pre-Depends: adduser, init-system-helpers (>= 1.54~)
+Depends: libc6 (>= 2.34), libssl3 (>= 3.0.0), libwrap0 (>= 7.6-4~)
+Recommends: monitoring-plugins-basic | monitoring-plugins
+Suggests: xinetd | inetd
+Conflicts: nagios-nrpe-doc, nagios-nrpe-server
+Replaces: nagios-nrpe-server
+Provides: nagios-nrpe-server
+Homepage: https://github.com/NagiosEnterprises/nrpe
+Priority: optional
+Section: net
+Filename: pool/main/n/nagios-nrpe/nagios-nrpe-server-ap_4.1.3-1017~bookworm1_arm64.deb
+Size: 367808
+SHA256: fd19ccb1e43853fe0e7adcf585ba4e335fd4c86d7d8e49dc8ee202e78a31d841
+SHA1: d275c4e60c455ceb3a25064a52aab56e17a09f0e
+MD5sum: b8951abde2f14ada4b8e179c76fdcdeb
+Description: Nagios Remote Plugin Executor Server
+ Nagios is a host/service/network monitoring and management system.
+ .
+ The purpose of this addon is to allow you to execute Nagios plugins on a
+ remote host in as transparent a manner as possible.
+ .
+ This program runs as a background process on the remote host and processes
+ command execution requests from the check_nrpe plugin on the Nagios host.
+
