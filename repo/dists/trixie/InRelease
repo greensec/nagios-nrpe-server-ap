@@ -2,35 +2,44 @@
 Hash: SHA512
 
 Codename: trixie
-Date: Sat, 03 Oct 2026 12:21:39 UTC
-Architectures: amd64
+Date: Tue, 06 Oct 2026 22:56:55 UTC
+Architectures: amd64 arm64
 Components: main
 Description: greensec/nagios-nrpe-server-ap
 MD5Sum:
  61a4128337a5373c21ae74976e3e0b80 1262 main/binary-amd64/Packages
  190dec1b624a7a950c060b6d36484f0d 746 main/binary-amd64/Packages.gz
  2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+ 0078868924a9e1e6a5562b8406be0f9b 1262 main/binary-arm64/Packages
+ 343b6297c065935d289123cd3e4dd008 745 main/binary-arm64/Packages.gz
+ f3d0c2e6b88eff5300a8485461910150 80 main/binary-arm64/Release
 SHA1:
  8f2c897ed1885115e1666bf6ae8366a995fd9503 1262 main/binary-amd64/Packages
  9cd412b763c60d5d35639c91345273ead26b57a1 746 main/binary-amd64/Packages.gz
  f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+ 6f4dbf5300b29704626f17541094cb3512dd6cd7 1262 main/binary-arm64/Packages
+ 649fc5a2d2b09baef2fdb58fae4c6546be063f12 745 main/binary-arm64/Packages.gz
+ c42e7c3ecbb908a69f0f92106a464a50352f6821 80 main/binary-arm64/Release
 SHA256:
  acf20073a33b3f208b7bdc88eebaf44e4d22fff306e49f853a0984711c17226a 1262 main/binary-amd64/Packages
  31bdc2a0d5d4ef9d491715f8ca441eb2be70aa153cc8de4a2063d75a49d5bb8a 746 main/binary-amd64/Packages.gz
  78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
+ 8b518d3ea1a6303d0a3f9abf3d20bc195f5758ee6ba788eebb0ba815c75c0bbc 1262 main/binary-arm64/Packages
+ 1f5013458ee9724ba68ec18aae01b6b3792d63f3ef6099633e11e01ae9af0aaf 745 main/binary-arm64/Packages.gz
+ 53f07f3e3a431cf885f3c2908953347cea4b0d0f4a2c90e41f49d3cbbe8a0f77 80 main/binary-arm64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrA81MACgkQLfCqaigF
-WCljAQ//dJRoBBJ2+9MkhOkX7Kex6zRsG6UKB2PbeSlx4fmNDfKKJT4PT152fJDa
-hjo0b8WEkUDTY1I70BqO/k4Vsf7ru+P6jPQqaa+DEq7UuqnBlfoe4c2FIpfh63D6
-RYPAbb2khuS2JHXnEY7uF1l+lBbSJt6mRbfAUp0CvoFvoFfPQ1IvtaiXTYs+g5VZ
-+Mp/1nYeXFoav94zMs2U1Ek6y4CDdCl6AbP5sAAX34PTuqWxT1gfVA4pasuxfM3j
-iHqI8ytg5ssADoCGk3MAL4oetoKd7I6HCQ2lY90TT3sD+l9/UdfFiyE5bUcKZFVS
-pauWnJbbxTnm+GriU+Bj+wxeQhiV30spDW5T7rMot8DGG5scPpk5H0Bp0Zu5nge1
-jXUfJ5CENwNvUAWKyUdb5egPhTOUKOem7TTrEdQl41ZDGqdohtei9rlgRDtMjxM3
-eEG5hlt1Hvw0fw7IvaSJ820tExo2MFoqR7zxR8czo3PsTRdMbd9L7u3LXkbAz3bg
-cfhPSlicK1WRaBqNaFV0pLGA799H5zei23FNigTPNwFqMzmNF6u8Pf7dapJPuDN7
-91/FyWKY3ZcjlHjn6SMsGgI4YuIgEou0LC+4S+ZR/gbTG32j/O9js7IodEG/jLJL
-X1GP5XZUus3wmkO7EpUHXZceUchqqHNiMxDwiG3n75pHnJ4HZko=
-=e4FR
+iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrFfLgACgkQLfCqaigF
+WClKQA/9FSA3CxSp3NJoB0l1qaVnDJQWWPAbwCv5vO1MGsKytPlrscZtAKm/FBFJ
+DuHdKMK+9FnuyQ+GFM+arroaGNqCROei6QYQdKDdB4T5AZC5oQVYFMmYpTxgmxjl
+kOOa0a+8E0kWSdLb1jF9C1rV49bhaKpeWri2idUGuVjhTkDBQ+B0kANLs4SML9h9
+ww44yiECPPGQ9VZloQWKxJ1b1aZLKfXbvPnThYi1of+7xs5lm6t+aWGdmLhD6Slg
+O9szKMTtRc5csslTFK18quGAijCvWFfQr90pc5JTJb9xpFZOAfZQWZg9GBRPDhuE
+0uRCn5Y07kW25DU+uzIwCIzceYXHBIfYLSKO+bBXXBzKsyRxBjkr014O7ObvFoGE
+Pa2iHeTwOa2m0vXxLbyZeFdKq+STK+nZ5cXyE9ZKPFI3xZ4mzmgxzV0lAvoz+/n0
+n8pxmnP8/QQrOthLa7yTSws6UPegbKt5MmWbMZqTK8c6Fe2Uqe1y5OpxtRGvYRiI
+BwQC3QHNTMrsgEjEOnGxQL+wju/CC0cEb0KABsnixgc3H94gRIaspqiZrZPeFQcf
+sWQIjfbdc8h8kIcy2iElbb2vB+BNAjwMM7tFKgg2KTy2BGvu0VebWgT8oCP9XvAw
+zLq+MvI0mQWWCAXWAIA2NSGeq1fexg5DM9bVdkTUH0gYdwNzVNU=
+=LQD+
 -----END PGP SIGNATURE-----

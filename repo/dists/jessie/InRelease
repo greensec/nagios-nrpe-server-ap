@@ -2,35 +2,44 @@
 Hash: SHA512
 
 Codename: jessie
-Date: Sat, 03 Oct 2026 12:21:39 UTC
-Architectures: amd64
+Date: Tue, 06 Oct 2026 22:56:56 UTC
+Architectures: amd64 arm64
 Components: main
 Description: greensec/nagios-nrpe-server-ap
 MD5Sum:
  879ba0ca3572cab09d06f5ec2034b50e 1263 main/binary-amd64/Packages
  c386b9bcb89596edd07dfef4688568d6 741 main/binary-amd64/Packages.gz
  2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+ d41d8cd98f00b204e9800998ecf8427e 0 main/binary-arm64/Packages
+ 7029066c27ac6f5ef18d660d5741979a 20 main/binary-arm64/Packages.gz
+ f3d0c2e6b88eff5300a8485461910150 80 main/binary-arm64/Release
 SHA1:
  e0ecadbccace42fc5656a5c772b77d18bbeee2ff 1263 main/binary-amd64/Packages
  87e46865edb7e395da374d8caba4913c1314e40e 741 main/binary-amd64/Packages.gz
  f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+ da39a3ee5e6b4b0d3255bfef95601890afd80709 0 main/binary-arm64/Packages
+ 46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/binary-arm64/Packages.gz
+ c42e7c3ecbb908a69f0f92106a464a50352f6821 80 main/binary-arm64/Release
 SHA256:
  e602d4cfb4ffabb33b471308281458ccec054a10831c07195b8ad6e2dd7a377d 1263 main/binary-amd64/Packages
  836ba15c2c9e8e66d8150f7148546b55a02e351f43acc615a7f4e52e8a8796ea 741 main/binary-amd64/Packages.gz
  78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/binary-arm64/Packages
+ 59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2 20 main/binary-arm64/Packages.gz
+ 53f07f3e3a431cf885f3c2908953347cea4b0d0f4a2c90e41f49d3cbbe8a0f77 80 main/binary-arm64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrA81MACgkQLfCqaigF
-WCmpgw//RJdt8CUQKoPThm61SWYIAn3QoKLEJRYJaDWLyyeXdyJUDfHi1znB7XK7
-AJPDQSne+FQqOAtKezUXWRXtCqgBPo3GcCD+Z2Qink1FPrtM9wfDvoD0jKdf3A4d
-11jJ9D+g+1NNPVzSdRTNd1tDKLujurzISO5N+wi/fkVBRCWxf6n+RKuj7k8aPWtI
-W+WF0wEFaPwzMQfQgXC7RGuDSwWMfROxK2OcEjzIlsHcdIhDLtpnINAtOf4VpCbE
-NgrEH5becMrBqoAkF0vxo5G1q+plcVonkSckUkgVOyBxnE4SyrJIysUKqnhtFvMa
-SPIdNczo8M2mZJsWBGWFOhN30LnizUosdKHwyw9zTX7hzlpoPoWbaCuX37gksvi1
-WyapHKl74PphSr1ZQje1Q5KtwzVyupe7EhIHssiIVITZZm/LuycIghhq24ca2ihG
-zw2nUntQ7YMHhqNY/re8tZszn5N5iRmf6Pcsv6+H2pQHvlHOnZ41uzK8MD4KpXvS
-PYRnUYyyhivD8Gwz3KUYJZ1Z/MlHNXWY2vgIhSXvfAN0DvQzWtFsUW9C98cCBBsf
-/7Lu4fKkxWekNYs6SMANnNT2uSjJI8nhPVb1ajdGgs9XIiJ2E26rM7/u/0unj7gv
-Slli+v3SnvXQqzzjTq7kyPsmdbvZeELRIweVrmGaYpc+AI/j9Sg=
-=9pRu
+iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrFfLgACgkQLfCqaigF
+WCkeDxAAnZUMhwiXut2s1e1ZgOAwP+3WKdBAeFpfAgmi8ui0tUx4gMkhE1/nzHLJ
+qLkfPPGmRUvtcHLquum7Rvi+BcmlouKe5Pcjnjfe/hiVHuYEKfADU85q4yw0bX/u
+qui55N/Jkl6idMWI9GQiqdbg7oKvj/iiFQBfWvAo+FBDeVuoWj+GJzzDQOq575oj
+EK9o533FDN52rL45389nd35sgL5FeB8C1T4pjyvMynaErFDkNvHGhFyJshY3QG3S
+DjINPNtI0SiOI6FXdHkDoPlQB3Noh4IyqNIO6e854Fr38Vkk99Uj40HukDabTrZY
+w9Sq0yEvVoXjSVbrshjJFb/MEkfyoOf4TM4mqkCBmHtBbc6tbkfVupB+/Pj8KdZK
+pW8OtaS40F/SWORWXBC4xIaBJ+jQ0HgX/8c7RGPNm/fbMR1Yv5j+JFiTqsRPfOz2
+7Ikp1I8jhdW1ETud+/qlW5TyukwDtnfTP3WiZc3woU9TNJ853tp8MXZOExdcvCZN
+l57Lg6EIzVKkAJX4Pt9eFPZQJvLzJOe6DIVqveDC3YMYZZj9E6DxCGuJTuq3g42y
+hnKnCq/FKxJamF3cgvWsTnEXua5COoR5j4pPkbMaJuHJeQBVRz9lRUOSH0On4rYC
+JkIw6KNPIAXwPgzROq5lF+zB4bIaEsfSVr4LQkjCRtNqdLPCJHA=
+=84dZ
 -----END PGP SIGNATURE-----

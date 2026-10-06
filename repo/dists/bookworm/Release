@@ -1,17 +1,26 @@
 Codename: bookworm
-Date: Sat, 03 Oct 2026 12:21:39 UTC
-Architectures: amd64
+Date: Tue, 06 Oct 2026 22:56:55 UTC
+Architectures: amd64 arm64
 Components: main
 Description: greensec/nagios-nrpe-server-ap
 MD5Sum:
  5af12bac0dbcd93c53d20c588552df59 1263 main/binary-amd64/Packages
  40c39d73814d7525354640c5fb236580 745 main/binary-amd64/Packages.gz
  2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+ d41d8cd98f00b204e9800998ecf8427e 0 main/binary-arm64/Packages
+ 7029066c27ac6f5ef18d660d5741979a 20 main/binary-arm64/Packages.gz
+ f3d0c2e6b88eff5300a8485461910150 80 main/binary-arm64/Release
 SHA1:
  7d4f078d6e1aa68538578df70b5f3d63edfa0452 1263 main/binary-amd64/Packages
  a0df06c8a8b8021e507f618162f36c13e952f6d0 745 main/binary-amd64/Packages.gz
  f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+ da39a3ee5e6b4b0d3255bfef95601890afd80709 0 main/binary-arm64/Packages
+ 46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/binary-arm64/Packages.gz
+ c42e7c3ecbb908a69f0f92106a464a50352f6821 80 main/binary-arm64/Release
 SHA256:
  7d154a8154ef972d7bc0836edcdbb664d307b5984dfdd9063ecb2d86bd2ad14c 1263 main/binary-amd64/Packages
  4ba7776d2a9a34ccbd02f94f2b5a514009df31c5daefe6674de06e293a0df714 745 main/binary-amd64/Packages.gz
  78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/binary-arm64/Packages
+ 59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2 20 main/binary-arm64/Packages.gz
+ 53f07f3e3a431cf885f3c2908953347cea4b0d0f4a2c90e41f49d3cbbe8a0f77 80 main/binary-arm64/Release

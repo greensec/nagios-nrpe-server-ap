@@ -2,35 +2,44 @@
 Hash: SHA512
 
 Codename: noble
-Date: Sat, 03 Oct 2026 12:21:39 UTC
-Architectures: amd64
+Date: Tue, 06 Oct 2026 22:56:56 UTC
+Architectures: amd64 arm64
 Components: main
 Description: greensec/nagios-nrpe-server-ap
 MD5Sum:
  b71ebeb7b19636c336c23c6e13dd6aa0 1260 main/binary-amd64/Packages
  392e11268f91ed296dfecfa8811c8b4a 740 main/binary-amd64/Packages.gz
  2559fcece0a0a9c22ab30b073b78cdf7 80 main/binary-amd64/Release
+ d41d8cd98f00b204e9800998ecf8427e 0 main/binary-arm64/Packages
+ 7029066c27ac6f5ef18d660d5741979a 20 main/binary-arm64/Packages.gz
+ f3d0c2e6b88eff5300a8485461910150 80 main/binary-arm64/Release
 SHA1:
  3aa4b2c280c9bd9cad8952b393e76ccd2d581e31 1260 main/binary-amd64/Packages
  435044ffd530cc3d9923d4d2fe7f94852f898a04 740 main/binary-amd64/Packages.gz
  f62689573e617288d12b710cff11fad1768f1380 80 main/binary-amd64/Release
+ da39a3ee5e6b4b0d3255bfef95601890afd80709 0 main/binary-arm64/Packages
+ 46c6643f07aa7f6bfe7118de926b86defc5087c4 20 main/binary-arm64/Packages.gz
+ c42e7c3ecbb908a69f0f92106a464a50352f6821 80 main/binary-arm64/Release
 SHA256:
  e8f98c149a4644430fa2b9a54973a6325b44f4220d1f8544a7f9bf4d37d2a228 1260 main/binary-amd64/Packages
  3428203867b1c1d5761bb12894226a98145a8d6b4893bf39e7a1174cb9075981 740 main/binary-amd64/Packages.gz
  78ff99c10971fc9f3dd42247cf055c09712975fe7509b07ec36354a8a50da237 80 main/binary-amd64/Release
+ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 0 main/binary-arm64/Packages
+ 59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2 20 main/binary-arm64/Packages.gz
+ 53f07f3e3a431cf885f3c2908953347cea4b0d0f4a2c90e41f49d3cbbe8a0f77 80 main/binary-arm64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrA81MACgkQLfCqaigF
-WCneiQ//RbTzdWKuuPWqM4225mRSfciBQILRIJf7E/FT+SFw8vk4bREQtAhA1KDe
-1ok9nNRKMAKpMccwBR528xQ3pHkpbyu86NGhzW4uACqq7CNZTKhr8enFvbJ0h3bF
-TS33zEXn1Hp3lHbk3o4pNMWiEGmHrsQ/JPFKM7L8sZuR1E+uIpnyKcae9oqlTWdf
-Bf86klMn0xlOlnQueagWcdDn6ZDm8CT0saOQgY5MCLMko4BG7YtyhJoALkLBbe5I
-km9t/TOQhug1i4PDRNwYQ938+Q8SDMq/8ruJGUPsXGE1qpjVxISnqS0Xtdyjw+KY
-qXyRooZTTQGFiyK9cakjOXWT3ElKDm+Hyj5giLd0Y8LhZN4O+820diWt65hG6a8M
-rNjlaxwYAe2Y+N9qI8xWZAV1PcpTylExOIzrnuCjO/cmNodvkyX7KP+N5xEHhpx4
-mYHrNgjtIYYpRLgN7F0YV68xyqWjIvophSCV67l4QHwjUSl8Z9PYQEEVm6aydQ0q
-2Cv/CONNiBV7uugwPJXu4sYTZpURdfsI8jT4U8YtSHWTu1GFelQvBXQWz6bajXHW
-/UtgZteClAilr3iYuey8GhF3NFhAPAg18wmwFhPLcnZIHyDk3MN9QZ4pEZQqaLaT
-VWCxU/zzon4s2QEftvnN5Njbhse/H4ufPZFR1gCgq9XKrcplIdM=
-=MrKu
+iQIzBAEBCgAdFiEElk6TwJ7kXpBG9luILfCqaigFWCkFAmrFfLgACgkQLfCqaigF
+WCkYCw//XwVuWjQmHXg4cAMv7hfnV3cmvoqSdPjXxpRpCzGtpd6SEr9SuLqlJ/4+
+qYevqrDpBbl0hSPOrpJcK9E+c9wfUH6+l/m5bHrlfsPbCG8kY02IJQs/Sqw5bjAA
+AVyB/JeFiAqxErMAtSx8Sz6i/GGnHo4ckQMkTuCS5AvWf8RAOzR80+kqAeC4zA67
+9CBTNSODgWwKU+3LP4Lg+L4h03htwJiNmITWLeJmNqRK6LRbeSH5H1wb26/ejCpU
+qbVcJgvd42yhV3Dr4Wc4noWtz9QcYNpVtY61dP5nmj8HEzq1UQyqr8VJiw6G797r
+x1Wn2EfZ7uBcw05Z2Zl2fwUjYVenKvaNqjN8wqMTj58gCJTfu490DlS5ii2yHvdT
+J3aivRVJYxLgA26gVFUJ8PWpkfDrG18FnkE+HtNx8USTuS9IMFnZU+MZiJP5pv6m
+vFMHPXXXE2NjNNBgwCjXRiIc1fTQCc81A8XTtrnL/Um80EhyOlwp20QCZDlZaFbf
+VxSoexRD+d8KhQrxpkhhzbEL+9WlNhZikA0oznDrM7536Ix7O4PTIy8jlD/bi52M
+1/ZcZM0iyKNUmq2VeRWxuL+hyUf3Qdeubzi5F6ZXjZtRlgcKg5QSX9QaXam8zYNR
+WbVK07IcgKFPa9n87X0+fz/zgJtGhFNk2n7cX7MeMj1tQKaqAGM=
+=7R5T
 -----END PGP SIGNATURE-----
