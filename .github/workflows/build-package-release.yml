@@ -9,6 +9,10 @@ on:
         description: "Debian/Ubuntu flavor (e.g. debian:trixie, ubuntu:noble)"
         default: "debian:trixie"
         required: true
+      arch:
+        description: "Target architecture (amd64 or arm64)"
+        default: "amd64"
+        required: true
       release:
         type: boolean
         description: "publish to repository"
@@ -16,7 +20,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     permissions:
       contents: write
     steps:
@@ -71,7 +75,9 @@ jobs:
         if: github.event.inputs.release == 'true'
         with:
           github_token: ${{ github.token }}
-          repo_supported_arch: amd64
+          repo_supported_arch: |
+            amd64
+            arm64
           repo_supported_version: ${{ steps.releases.outputs.repo_versions }}
           file: |
             nagios-nrpe-server-ap_*.deb

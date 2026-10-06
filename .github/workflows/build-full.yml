@@ -39,7 +39,7 @@ jobs:
 
   build:
     name: Build packages
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     permissions:
       contents: read
     needs: prepare
@@ -47,6 +47,14 @@ jobs:
       fail-fast: false
       matrix:
         os-version: ${{ fromJson(needs.prepare.outputs.os_matrix) }}
+        arch: [amd64]
+        # native arm64 builds on the arm runner; multiarch docker images
+        # pull the matching variant automatically (no qemu needed)
+        include:
+          - os-version: debian:bookworm
+            arch: arm64
+          - os-version: debian:trixie
+            arch: arm64
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -68,7 +76,7 @@ jobs:
       - name: Upload deb files
         uses: actions/upload-artifact@v7
         with:
-          name: packages-${{ env.debian_release }}
+          name: packages-${{ env.debian_release }}-${{ matrix.arch }}
           # only the renamed server package; the byproduct
           # nagios-nrpe-plugin deb must not shadow the distro package
           path: ./nagios-nrpe-server-ap_*.deb
@@ -121,6 +129,7 @@ jobs:
           github_token: ${{ github.token }}
           repo_supported_arch: |
             amd64
+            arm64
           repo_supported_version: ${{ needs.prepare.outputs.repo_versions }}
           file: |
             *.deb
