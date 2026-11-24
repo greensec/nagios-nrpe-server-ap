@@ -124,7 +124,7 @@ jobs:
         with:
           name: "merged-artifacts"
       - name: Add releases to repo
-        uses: smeinecke/apt-repo-action@v2.2.1
+        uses: smeinecke/apt-repo-action@v2.2.4
         with:
           github_token: ${{ github.token }}
           repo_supported_arch: |
